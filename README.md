@@ -15,12 +15,12 @@ Making the End-User a Priority in Benchmarking: OrionBench for Unsupervised Time
 MOSPAT: AutoML based Model Selection and Parameter Tuning for Time Series Anomaly Detection
 Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy
 
-LSTM-AE : [LSTM-based Encoder-Decoder for Multi-sensor Anomaly Detection]
-XGBoost : [XGBoost: A Scalable Tree Boosting System]
-DeepAnT : [DeepAnT: A Deep Learning Approach for Unsupervised Anomaly Detection in Time Series]
-Anomaly Transformer : [Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy]
-VAE-LSTM : [Anomaly Detection for Time Series Using VAE-LSTM Hybrid Model]
-베이지안? : [Time Series Anomaly Detection for Cyber-Physical Systems via Neural System Identification and Bayesian Filtering]
+LSTM-based Encoder-Decoder for Multi-sensor Anomaly Detection
+XGBoost: A Scalable Tree Boosting System
+DeepAnT: A Deep Learning Approach for Unsupervised Anomaly Detection in Time Series
+Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy
+Anomaly Detection for Time Series Using VAE-LSTM Hybrid Model
+Time Series Anomaly Detection for Cyber-Physical Systems via Neural System Identification and Bayesian Filtering
 
 Glow: Generative Flow with Invertible 1x1 Convolutions
 Deep and Confident Prediction for Time Series at Uber
