@@ -15,6 +15,7 @@ https://paperswithcode.com/task/time-series-anomaly-detection
     - [FCVAE](https://dl.acm.org/doi/abs/10.1145/3589334.3645710) (2024): 추론 속도가 빠르고, 성능이 우수함
     - [OFA](https://proceedings.neurips.cc/paper_files/paper/2023/hash/86c17de05579cde52025f9984e6e2ebb-Abstract-Conference.html) (2023): 사전 학습된 GPT를 백본으로 사용하여 파라미터 수가 많고, 성능이 우수함
     - [Anomaly Transformer](https://arxiv.org/abs/2110.02642) (2022): 파라미터의 수가 많고, 기대보다 성능이 낮게 나타남
+    - 이 밖에도, LSTMAD, AE, FITS, Donut, TranAD, EncDecAD, TimesNet, SRCNN 등의 모델도 벤치마크됨
 
 - MTAD: Tools and Benchmarks for Multivariate Time Series Anomaly Detection
 - Making the End-User a Priority in Benchmarking: OrionBench for Unsupervised Time Series Anomaly Detection
