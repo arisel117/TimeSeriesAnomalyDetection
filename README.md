@@ -18,6 +18,12 @@ https://paperswithcode.com/task/time-series-anomaly-detection
     - 이 밖에도, LSTMAD, AE, FITS, Donut, TranAD, EncDecAD, TimesNet, SRCNN 등의 모델도 벤치마크됨
 
 - MTAD: Tools and Benchmarks for Multivariate Time Series Anomaly Detection
+ - 5가지 데이터셋으로 12가지 모델을 벤치마크함
+   - KNN, AutoEncoder, LSTM, LSTM_VAE 모델이 우수한 결과를 보임
+   - KNN은 대부분의 데이터셋에서 우수했고, 최고 성능은 DL 모델에서 나타남
+   - 이 밖에도, iForest, LODA, LOF, PCA, DAGMM, MAD_GAN, MSCRED, OmniAnomaly 등의 모델도 벤치마크됨
+
+
 - Making the End-User a Priority in Benchmarking: OrionBench for Unsupervised Time Series Anomaly Detection
 - MOSPAT: AutoML based Model Selection and Parameter Tuning for Time Series Anomaly Detection
 - Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy
