@@ -22,12 +22,23 @@ https://paperswithcode.com/task/time-series-anomaly-detection
     - KNN, AutoEncoder, LSTM, LSTM_VAE 모델이 우수한 결과를 보임
     - KNN은 대부분의 데이터셋에서 우수했고, 최고 성능은 DL 모델에서 나타남
     - 이 밖에도, iForest, LODA, LOF, PCA, DAGMM, MAD_GAN, MSCRED, OmniAnomaly 등의 모델도 벤치마크됨
+    - 모든 데이터셋에 가장 적합한 모델은 없으며, DL 모델의 경우 튜닝이 중요함
+
+- [Making the End-User a Priority in Benchmarking: OrionBench for Unsupervised Time Series Anomaly Detection](https://arxiv.org/abs/2310.17748)
+  - OrionBench라는 리더보드를 도입하여 시계열 이상 탐지 분야의 벤치마킹을 할 수 있는 시스템을 제안함
+  - 14가지 데이터셋으로 12가지 모델을 벤치마크함
+    - [AER](https://ieeexplore.ieee.org/abstract/document/10020857), [LSTM DT](https://dl.acm.org/doi/abs/10.1145/3219819.3219845), 모델이 비교적 우수한 결과를 보임
+    - ARIMA, MP, LSTM AE, TadGAN, VAE, Dense AE, GANF, LNN, Azure AD, AT
+  - 모든 데이터셋에 가장 적합한 모델은 없음
+
+- [MOSPAT: AutoML based Model Selection and Parameter Tuning for Time Series Anomaly Detection](https://arxiv.org/abs/2205.11755)
+  - 시계열 이상 탐지 모델의 매개변수 선택을 위한 End-to-End 시스템을 제안함
+  - AutoML, Outlier, CUSUM, BOCPD, Statsig, MKDetector, Prophet 방법론을 비교함
+    - AutoML이 일관되게 우수한 성능을 나타냄
+    - Bayesian Optimization 방법을 통해 학습 시간을 단축
 
 
-- Making the End-User a Priority in Benchmarking: OrionBench for Unsupervised Time Series Anomaly Detection
-- MOSPAT: AutoML based Model Selection and Parameter Tuning for Time Series Anomaly Detection
 - Anomaly Transformer: Time Series Anomaly Detection with Association Discrepancy
-
 - LSTM-based Encoder-Decoder for Multi-sensor Anomaly Detection
 - XGBoost: A Scalable Tree Boosting System
 - DeepAnT: A Deep Learning Approach for Unsupervised Anomaly Detection in Time Series
