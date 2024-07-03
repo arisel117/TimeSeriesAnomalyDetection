@@ -45,25 +45,25 @@ https://paperswithcode.com/task/time-series-anomaly-detection
 
 - [LSTM-based Encoder-Decoder for Multi-sensor Anomaly Detection](https://arxiv.org/abs/1607.00148)
   - LSTM 네트워크 기반 Encoder-Decoder 구조(EncDec-AD)를 제안함
-  - 모델의 구조적 특징을 생각해보면, 단변량 데이터보다 다변량 데이터에 유용한 모델로 생각됨
-  - 다른 모델들은 이상 탐지를 하려면 시계열 예측이 가능해야 했지만, 제안 방법론은 예측할 수 없는 시계열에서도 이상 징후를 탐지한 부분이 인상적임
+  - 모델의 구조적 특징을 생각해보면, 단변량 데이터보다 **다변량 데이터에 유용한 모델**로 생각됨
+  - 다른 모델들은 이상 탐지를 하려면 시계열 예측이 가능해야 했지만, 제안 방법론은 **예측할 수 없는 시계열에서도 이상 징후를 탐지**한 부분이 인상적임
   - [다른 블로그](https://joungheekim.github.io/2020/11/14/code-review/)들에서 코드 리뷰를 한 기록이 많음
  
 - [XGBoost: A Scalable Tree Boosting System](https://arxiv.org/abs/1603.02754)
-  - Sparsity-aware Split Finding에 의해 결측치가 있어도 학습이 가능함
-  - 분산 환경에서도 학습이 가능하고, CPU 캐시를 고려한 알고리즘이라 데이터가 많아도 빠른 속도로 학습이 가능함
-  - 모델의 학습 결과를 명확하게 설명 가능하다는 특징이 있음
-  - 논문의 인용수(4만↑)만 봐도 알 수 있듯이 다양한 분야에서 사용되고 정확도가 높은 것이 검증된 모델이며, 패키지화 되어 있어 사용성도 매우 편리하여 baseline model로 사용이 가능 할 것으로 생각됨
-  - 도메인 특성에 따라 튜닝이 필요한 만큼 [GridSearchCV](https://www.kaggle.com/code/phunter/xgboost-with-gridsearchcv)나 [AutoML](https://microsoft.github.io/FLAML/docs/Examples/AutoML-for-XGBoost/)을 사용해서 튜닝하는 방법이 매우 유용 할 것으로 생각됨
+  - Sparsity-aware Split Finding에 의해 **결측치가 있어도 학습이 가능**함
+  - 분산 환경에서도 학습이 가능하고, CPU 캐시를 고려한 알고리즘이라 **데이터가 많아도 빠른 속도로 학습이 가능**함
+  - 명확하게 모델의 **학습 결과를 설명 가능하다는 특징**이 있음
+  - 논문의 인용수(4만↑)만 봐도 알 수 있듯이 **다양한 분야에서 사용되고, 정확도가 높은 것이 검증**된 모델이며, 패키지화 되어 있어 **사용성도 매우 편리**하여 baseline model로 사용이 가능 할 것으로 생각됨
+  - 도메인 특성에 따라 튜닝이 필요한 만큼 [GridSearchCV](https://www.kaggle.com/code/phunter/xgboost-with-gridsearchcv)나 **[AutoML](https://microsoft.github.io/FLAML/docs/Examples/AutoML-for-XGBoost/)을 사용해서 튜닝**하는 방법이 매우 유용 할 것으로 생각됨
 
 - [DeepAnT: A Deep Learning Approach for Unsupervised Anomaly Detection in Time Series](https://ieeexplore.ieee.org/document/8581424)
-  - 결측치가 있어도 학습이 가능하고, 비교적 작은 데이터 세트에서도 모델을 학습할 수 있음
+  - **결측치가 있어도 학습이 가능**하고, **비교적 작은 데이터셋에서도 모델을 학습**할 수 있음
   - 다양한 모델, 다양한 데이터셋에서 비교한 결과를 제공하고 있지는 않아서 다소 아쉬움
-  - 구조가 정말 간단하기 때문에 구현이 쉽고, 모델 파라미터 수가 작은 CNN의 특징을 고려하면 잘 튜닝되면 End(Edge)단으로 Porting해서 사용하기에도 좋을 것으로 생각됨
+  - **구조가 정말 간단**하기 때문에 구현이 쉽고, 모델 파라미터 수가 작은 CNN의 특징을 고려하면 잘 튜닝되면 End(Edge)단으로 Porting해서 사용하기에도 좋을 것으로 생각됨
 
 - [Anomaly Detection for Time Series Using VAE-LSTM Hybrid Model](https://ieeexplore.ieee.org/document/9053558)
   - 5가지 데이터셋에서 VAE, LSTM-AD, ARMA 모델과 비교하여 우수한 결과를 보임
-  - 제안된 VAE를 접목한 LSTM은 다른 방법론과 다르게 저차원의 Embedding Layer를 사용하는 것을 고려하면 다변량 데이터보다 단변량 데이터에서 유용한 모델로 생각됨
+  - 제안된 VAE를 접목한 LSTM은 다른 방법론과 다르게 **저차원의 Embedding Layer를 사용**하는 것을 고려하면 다변량 데이터보다 **단변량 데이터에서 유용한 모델**로 생각됨
 
 
 
