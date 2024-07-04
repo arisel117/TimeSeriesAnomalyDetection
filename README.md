@@ -48,7 +48,7 @@ https://paperswithcode.com/task/time-series-anomaly-detection
     - ARIMA, MP, LSTM AE, TadGAN, VAE, Dense AE, GANF, LNN, Azure AD, AT
   - 모든 데이터셋에 **가장 적합한 모델은 없음**
 
-- [MOSPAT: AutoML based Model Selection and Parameter Tuning for Time Series Anomaly Detection](https://arxiv.org/abs/2205.11755)
+- **[MOSPAT: AutoML based Model Selection and Parameter Tuning for Time Series Anomaly Detection](https://arxiv.org/abs/2205.11755)**
   - 시계열 이상 탐지 모델의 매개변수 선택을 위한 End-to-End 시스템을 제안함
   - AutoML, Outlier, CUSUM, BOCPD, Statsig, MKDetector, Prophet 방법론을 비교함
     - **AutoML이 일관되게 우수한 성능**을 나타냄
@@ -66,7 +66,7 @@ https://paperswithcode.com/task/time-series-anomaly-detection
   - 다른 모델들은 이상 탐지를 하려면 시계열 예측이 가능해야 했지만, 제안 방법론은 **예측할 수 없는 시계열에서도 이상 징후를 탐지**한 부분이 인상적임
   - [다른 블로그](https://joungheekim.github.io/2020/11/14/code-review/)들에서 코드 리뷰를 한 기록이 많음
  
-- [XGBoost: A Scalable Tree Boosting System](https://arxiv.org/abs/1603.02754)
+- **[XGBoost: A Scalable Tree Boosting System](https://arxiv.org/abs/1603.02754)**
   - Sparsity-aware Split Finding에 의해 **결측치가 있어도 학습이 가능**함
   - 분산 환경에서도 학습이 가능하고, CPU 캐시를 고려한 알고리즘이라 **데이터가 많아도 빠른 속도로 학습이 가능**함
   - 명확하게 모델의 **학습 결과를 설명 가능하다는 특징**이 있음
@@ -86,7 +86,7 @@ https://paperswithcode.com/task/time-series-anomaly-detection
   - 3가지 데이터셋에 Isolation Forest, Sparse-AE, EncDec-AD, LSTM-Pred, DAGMM, OmniAnomaly, USAD 라는 다양한 선행 연구들과 비교함
 FFN, LSTM, 베이지안 필터링으로 구성된 NSIBF 모델이 우수한 결과를 보였으나, 보다 구체적인 모델 구조나 하이퍼파라미터들이 있으면 좋겠음
 
-- [Glow: Generative Flow with Invertible 1x1 Convolutions]()
+- **[Glow: Generative Flow with Invertible 1x1 Convolutions](https://arxiv.org/abs/1807.03039)**
   - 보다 자세한 내용을 알기 위해서는 선행 연구를 살펴 볼 필요가 있음
     - **[Variational Inference with Normalizing Flows](https://arxiv.org/pdf/1505.05770)** 논문의 Normalizing Flow 개념의 이해가 필요
     - **[Generative Adversarial Networks](https://arxiv.org/abs/1406.2661)** 논문의 GAN 모델의 이해가 필요
