@@ -1,6 +1,15 @@
 # 시계열 데이터의 이상 분석
 
 
+## 관련분야 선행 연구 분석 결과
+  - 도메인(데이터셋)의 특성에 따라 적합한 모델은 다를 수 있으며, 신경망의 깊이가 깊다고 반드시 좋은 결과를 도출하진 않음
+    - EDA와 같은 **데이터셋 자체에 대한 이해**가 선행적으로 이루어져야함
+    - 단변량 vs 다변량, (학습/추론에 따른) 제한된 작업 환경 요건 등도 고려해야함
+  - 적합한 모델이라 하더라도 **하이퍼 파라미터**에 따라 기울기 소실 혹은 폭주가 일어날 수 있으므로 적절한 해결 방법론들이 필요함
+    - **활성 함수의 조정, 기울기 클리핑, 적절한 가중치 초기화, 배치 정규화** 등을 통해 다소 해결이 가능함
+    - **AutoML**의 적용 (**[RayTune](https://docs.ray.io/en/latest/tune/index.html), [Auto-PyTorch](https://github.com/automl/Auto-PyTorch), [Optuna](https://optuna.org/), [AutoKeras](https://autokeras.com/), [auto-sklearn](https://automl.github.io/auto-sklearn/master/), [AutoML for XGBoost](https://microsoft.github.io/FLAML/docs/Examples/AutoML-for-XGBoost/), [H2O](https://docs.h2o.ai/h2o/latest-stable/h2o-docs/index.html)** 등)
+
+
 ## 참조 사이트
 ```
 https://paperswithcode.com/task/time-series-anomaly-detection
@@ -65,12 +74,24 @@ https://paperswithcode.com/task/time-series-anomaly-detection
   - 5가지 데이터셋에서 VAE, LSTM-AD, ARMA 모델과 비교하여 우수한 결과를 보임
   - 제안된 VAE를 접목한 LSTM은 다른 방법론과 다르게 **저차원의 Embedding Layer를 사용**하는 것을 고려하면 다변량 데이터보다 **단변량 데이터에서 유용한 모델**로 생각됨
 
+- [Time Series Anomaly Detection for Cyber-Physical Systems via Neural System Identification and Bayesian Filtering]()
+  - 3가지 데이터셋에 Isolation Forest, Sparse-AE, EncDec-AD, LSTM-Pred, DAGMM, OmniAnomaly, USAD 라는 다양한 선행 연구들과 비교함
+FFN, LSTM, 베이지안 필터링으로 구성된 NSIBF 모델이 우수한 결과를 보였으나, 보다 구체적인 모델 구조나 하이퍼파라미터들이 있으면 좋겠음
 
+- [Glow: Generative Flow with Invertible 1x1 Convolutions]()
+  - 보다 자세한 내용을 알기 위해서는 선행 연구를 살펴 볼 필요가 있음
+    - **[Variational Inference with Normalizing Flows](https://arxiv.org/pdf/1505.05770)** 논문의 Normalizing Flow 개념의 이해가 필요
+    - **[Generative Adversarial Networks](https://arxiv.org/abs/1406.2661)** 논문의 GAN 모델의 이해가 필요
+    - **[Density estimation using real nvp](https://arxiv.org/abs/1605.08803)** 논문의 real nvp 모델의 이해가 필요
+    - NN의 마지막 레이어에 **zero initialization**을 해주면, 처음에는 identity function처럼 작동하고, DL을 학습하기에 좋다고 함! 새로운 지식!
+    - Normalizing Flows에서 Temperature가 높으면 확률 분포가 균등하게 분포하게되어 출력의 무작위성으로 이어지고, **낮으면 출력이 조금 더 결정적(Deterministic)**으로 나타나게 되는 효과가 있음을 알 수 있음
 
+- [Deep and Confident Prediction for Time Series at Uber](https://arxiv.org/abs/1709.01907)
+  - Last-Day, QRF, LSTM 모델과 비교하여, AE-LSTM 구조에 Externel Features를 사용한 모델을 제안함
+  - 제한된 Uber 데이터셋에서만 비교 분석된 부분이 다소 아쉬움
 
-
-- Time Series Anomaly Detection for Cyber-Physical Systems via Neural System Identification and Bayesian Filtering
-- Glow: Generative Flow with Invertible 1x1 Convolutions
-- Deep and Confident Prediction for Time Series at Uber
-- A Deep Neural Network for Unsupervised Anomaly Detection and Diagnosis in Multivariate Time Series Data
+- [A Deep Neural Network for Unsupervised Anomaly Detection and Diagnosis in Multivariate Time Series Data](https://arxiv.org/abs/1811.08055)
+  - 다층 구조의 Conv LSTM 모델을 AutoEncoder 형태로 쌓은 모델인 MSCRED(Multi-Scale Convolutional Recurrent Encoder-Decoder)을 제안함
+  - OC-SVM, DAGMM, HA, ARMA, LSTM-ED, ConvLSTM 모델들과 비교하여 우수한 결과를 보임
+  - 다변량 데이터에 대한 학습이 가능하고, 디테일한 모델 구조에 대한 설명이 있어 재구현은 충분히 가능 할 것으로 생각됨
 
