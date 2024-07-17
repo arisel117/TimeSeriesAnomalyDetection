@@ -14,15 +14,16 @@
 
 <br/>  <br/>
 
-
+* * *
 ## 데이터 생성기 (v0.1)
   - [코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/generator.py)
   - 샘플 데이터 추가 필요
+* * *
 
-
+<br/>  <br/>
 
 * * *
-### 참조 사이트
+## 참조 사이트
 ```
 https://paperswithcode.com/task/time-series-anomaly-detection
 ```
@@ -31,7 +32,7 @@ https://paperswithcode.com/task/time-series-anomaly-detection
 <br/>  <br/>
 
 * * *
-### 참조 선행 연구
+## 참조 선행 연구
 - [TimeSeriesBench: An Industrial-Grade Benchmark for Time Series Anomaly Detection Models](https://arxiv.org/abs/2402.10802)
   - TimeSeriesBench라는 리더보드를 도입하여 시계열 이상 탐지 분야의 **벤치마킹**을 할 수 있는 시스템을 제안함
   - 여러 모델에 대한 벤치마크 결과를 표현함
