@@ -14,6 +14,13 @@
 
 <br/>  <br/>
 
+
+## 데이터 생성기 (v0.1)
+  - [코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/generator.py)
+  - 샘플 데이터 추가 필요
+
+
+
 * * *
 ### 참조 사이트
 ```
