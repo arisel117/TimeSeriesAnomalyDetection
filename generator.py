@@ -320,3 +320,355 @@ class TimeSeriesDataGenerator(object):
             current_index += b
 
         return data
+
+
+    def get_sample_pattern(
+        self,
+        pattern: dict = {'Basic': -1, 'Vibration': -1, 'Abnoraml': -1, },
+    ) -> list:
+        trend = []
+        trend += self._get_basic_pattern(pattern_idx=pattern['Basic'])
+        trend += self._get_vibration_pattern(pattern_idx=pattern['Vibration'])
+        trend += self._get_abnoraml_pattern(pattern_idx=pattern['Abnoraml'])
+
+        return trend
+
+
+    def _get_basic_pattern(
+        self,
+        pattern_idx: int
+    ) -> list:
+        if pattern_idx == -1:    # No Pattern (None, Default)
+            trend = [
+                {
+                    'freq': 'year',
+                    'method': 'linear',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                },
+            ]
+        elif pattern_idx == 1:    # Linear Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+            ]
+        elif pattern_idx == 2:     # Sin Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'sin',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'cycle_value': 2,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'sin',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'cycle_value': 1,
+                    'range_value': 10.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'sin',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'cycle_value': 3,
+                    'range_value': 5.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'sin',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'cycle_value': 1,
+                    'range_value': 3.,
+                },
+            ]
+        elif pattern_idx == 3:     # Uniform Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 10.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 5.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+            ]
+        elif pattern_idx == 4:     # Normal Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 10.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 5.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+            ]
+        elif pattern_idx == 5:     # User Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'sin',
+                    'start_value': -5.,
+                    'end_value': 5.,
+                    'cycle_value': 1,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'custom',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'custom_value': [-6, -3, 2, 3, 4, 10, -10],
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'custom',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'custom_value': [
+                        -10, -10, -10, -10, -10, -10, -10, -8, -6, 0, 6, 10,
+                        6, 4, 6, 5, 4, 0, -6, -8, -8, -10, -10, -10],
+                },
+            ]
+        else:
+            raise Exception("DataRangeError: Basic Pattern must be one of (-1, 1, 2, 3, 4, 5).")
+
+        return trend
+
+
+    def _get_vibration_pattern(
+        self,
+        pattern_idx: int
+    ) -> list:
+        if pattern_idx == -1:    # No Vibration (None, Default)
+            trend = []
+        elif pattern_idx == 1:    # 1% Abnormal (1% Point Only)
+            trend = [
+                {
+                    'freq': 'year',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+            ]
+        elif pattern_idx == 2:     # 5% Abnormal (2.5% Point, 2.5% Pattern)
+            trend = [
+                {
+                    'freq': 'year',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+            ]
+        else:
+            raise Exception("DataRangeError: Vibration Pattern must be one of (-1, 1, 2).")
+
+        return trend
+
+
+    def _get_abnoraml_pattern(
+        self,
+        pattern_idx: int
+    ) -> list:
+        if pattern_idx == -1:    # No Abnormal (None, Default)
+            trend = []
+        elif pattern_idx == 1:    # 1% Abnormal (1% Point Only)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.01,
+                    'abnormal_range': (400., 50.),
+                },
+            ]
+        elif pattern_idx == 2:     # 5% Abnormal (2.5% Point, 2.5% Pattern)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.025,
+                    'abnormal_range': (400., 50.),
+                },
+                {
+                    'method': 'abnormal_pattern',
+                    'abnormal_ratio': 0.025,
+                    'abnormal_range': (400., 50.),
+                    'abnormal_dist': (30, 2 * 24 * 60),
+                },
+            ]
+        elif pattern_idx == 3:     # 10% Abnormal (5% Point, 5% Pattern)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.05,
+                    'abnormal_range': (400., 50.),
+                },
+                {
+                    'method': 'abnormal_pattern',
+                    'abnormal_ratio': 0.05,
+                    'abnormal_range': (400., 50.),
+                    'abnormal_dist': (30, 2 * 24 * 60),
+                },
+            ]
+        elif pattern_idx == 4:     # 25% Abnormal (12.5% Point, 12.5% Pattern)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.125,
+                    'abnormal_range': (400., 50.),
+                },
+                {
+                    'method': 'abnormal_pattern',
+                    'abnormal_ratio': 0.125,
+                    'abnormal_range': (400., 50.),
+                    'abnormal_dist': (12 * 60, 2 * 24 * 60),
+                },
+            ]
+        elif pattern_idx == 5:     # 50% Abnormal (25% Point, 25% Pattern)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.25,
+                    'abnormal_range': (400., 50.),
+                },
+                {
+                    'method': 'abnormal_pattern',
+                    'abnormal_ratio': 0.25,
+                    'abnormal_range': (400., 50.),
+                    'abnormal_dist': (12 * 60, 2 * 24 * 60),
+                },
+            ]
+        else:
+            raise Exception("DataRangeError: Abnoraml Pattern must be one of (-1, 1, 2, 3, 4, 5).")
+
+        return trend
