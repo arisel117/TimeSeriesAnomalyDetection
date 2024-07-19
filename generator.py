@@ -31,7 +31,7 @@ class TimeSeriesDataGenerator(object):
 
         np.random.seed(seed)
         data = self._get_baseline()
-        data = self._get_trend(data)
+        data, abnormal_label = self._get_trend(data)
 
         data['value'] = data['value'].where(
             data['value'] > self.clipping_range['min_bound'], self.clipping_range['min_bound'])
@@ -39,14 +39,19 @@ class TimeSeriesDataGenerator(object):
             data['value'] < self.clipping_range['max_bound'], self.clipping_range['max_bound'])
 
         data = data.sort_values(['datetime']).reset_index(drop=True)
+        abnormal_label = abnormal_label.sort_values(['datetime']).reset_index(drop=True)
 
         if plot:
             self.plot_data(data)
-        return data
+            self.plot_data(abnormal_label)
+        return data, abnormal_label
 
 
     def _get_trend(self, data: pd.DataFrame) -> pd.DataFrame:
         data = data.copy()
+        abnormal_label = pd.DataFrame(index=data.index)
+        abnormal_label['datetime'] = data['datetime']
+        abnormal_label['label'] = 0
 
         for _trend in self.trend:
             method = _trend['method'].lower()
@@ -60,15 +65,17 @@ class TimeSeriesDataGenerator(object):
 
             if method == 'abnormal_point':
                 data = data.sort_values(['datetime']).reset_index(drop=True)
-                data = self._abnormal_point(
+                data, abnormal_label = self._abnormal_point(
                     data=data,
+                    abnormal_label=abnormal_label,
                     abnormal_ratio=_trend['abnormal_ratio'],
                     abnormal_range=_trend['abnormal_range'])
                 continue
             elif method == 'abnormal_pattern':
                 data = data.sort_values(['datetime']).reset_index(drop=True)
-                data = self._abnormal_pattern(
+                data, abnormal_label = self._abnormal_pattern(
                     data=data,
+                    abnormal_label=abnormal_label,
                     abnormal_ratio=_trend['abnormal_ratio'],
                     abnormal_range=_trend['abnormal_range'],
                     abnormal_dist=_trend['abnormal_dist'])
@@ -112,7 +119,7 @@ class TimeSeriesDataGenerator(object):
             data['value'] += data['cache']
             data.drop(columns=['freq_time', 'cache'], inplace=True)
 
-        return data
+        return data, abnormal_label
 
 
     def plot_data(
@@ -177,7 +184,6 @@ class TimeSeriesDataGenerator(object):
         cycle: int = 1,
     ) -> np.array:
         return np.sin(np.linspace(start=0, stop=cycle * 2 * np.pi, num=data_len)) * data_range
-        # return np.sin(np.linspace(start=0, stop=(data_len // cycle) * 2 * np.pi, num=data_len)) * data_range
 
 
     def _uniform(
@@ -216,10 +222,12 @@ class TimeSeriesDataGenerator(object):
     def _abnormal_point(
         self,
         data: pd.DataFrame,
+        abnormal_label: pd.DataFrame,
         abnormal_ratio: float,
         abnormal_range: tuple,
     ) -> pd.DataFrame:
         data = data.copy()
+        abnormal_label = abnormal_label.copy()
 
         abnormal_cnt = int(len(data) * abnormal_ratio)
         extd = pd.DataFrame(
@@ -238,7 +246,12 @@ class TimeSeriesDataGenerator(object):
         data['value'] += data['cache'].fillna(0)
         data.drop(columns=['cache'], inplace=True)
 
-        return data
+        extd['cache'] = 1
+        abnormal_label = abnormal_label.join(extd, how='left')
+        abnormal_label['label'] += abnormal_label['cache'].fillna(0)
+        abnormal_label.drop(columns=['cache'], inplace=True)
+
+        return data, abnormal_label
 
 
     def _get_abnormal(
@@ -291,11 +304,13 @@ class TimeSeriesDataGenerator(object):
     def _abnormal_pattern(
         self,
         data: pd.DataFrame,
+        abnormal_label: pd.DataFrame,
         abnormal_ratio: float,
         abnormal_range: tuple,
         abnormal_dist: tuple,
     ) -> pd.DataFrame:
         data = data.copy()
+        abnormal_label = abnormal_label.copy()
 
         min_value, max_value = sorted(abnormal_dist)
         abnormals = self._get_abnormal(
@@ -319,7 +334,13 @@ class TimeSeriesDataGenerator(object):
             + self._normal(data_len=b, data_range=abnormal_range[1])
             current_index += b
 
-        return data
+        current_index = 0
+        for a, b, _cen in zip(normals, abnormals, abnormals_center):
+            current_index += a
+            abnormal_label.loc[current_index: current_index + b - 1, "label"] = 1
+            current_index += b
+
+        return data, abnormal_label
 
 
     def get_sample_pattern(
