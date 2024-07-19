@@ -15,11 +15,20 @@
 <br/>  <br/>
 
 * * *
-## 데이터 생성기 (v0.2)
+## 데이터 생성기 (v1)
   - [코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/generator.py)
   - 데이터 생성기 추가 (v0.1)
   - 샘플 데이터 추가 (v0.2)
-  - Abnormal 데이터에 대한 label 추가 필요
+  - Abnormal 데이터에 대한 label 생성기 및 사용 설명서 추가 (v1.0)
+## 데이터 샘플 이미지
+  - 정의된 Pattern을 가지고 생성한 샘플 Trend를 사용해 생성된 샘플 데이터
+    [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/custom_data.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
+  - 같이 생성된 Abnormal label 데이터
+    [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/custom_abnormal.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
+  - 사용자가 별도로 정의한 샘플 Trend를 사용해 생성된 샘플 데이터
+    [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/sample_data.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
+  - 같이 생성된 Abnormal label 데이터
+    [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/sample_abnormal.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
 * * *
 
 <br/>  <br/>
