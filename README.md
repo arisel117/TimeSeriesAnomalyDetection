@@ -34,6 +34,16 @@
 <br/>  <br/>
 
 * * *
+## 연구 Model
+  - 선행 모델 참조
+
+## AutoML
+  - 모델에 적용해보기!!
+* * *
+
+<br/>  <br/>
+
+* * *
 ## 참조 사이트
 ```
 https://paperswithcode.com/task/time-series-anomaly-detection
