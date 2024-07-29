@@ -38,7 +38,8 @@
   - 선행 모델 참조
 
 ## AutoML
-  - 모델에 적용해보기!!
+  - [관련 정보](https://github.com/arisel117/AutoML)
+  - 세부 사용법 링크
 * * *
 
 <br/>  <br/>
