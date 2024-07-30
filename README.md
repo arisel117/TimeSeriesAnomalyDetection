@@ -34,12 +34,9 @@
 <br/>  <br/>
 
 * * *
-## 연구 Model
-  - 선행 모델 참조
-
 ## AutoML
   - [관련 정보](https://github.com/arisel117/AutoML)
-  - 세부 사용법 링크
+  - 세부 사용법 첨부 with 코드
 * * *
 
 <br/>  <br/>
