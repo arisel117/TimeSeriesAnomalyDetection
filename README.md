@@ -29,6 +29,8 @@
     [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/sample_data.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
   - 같이 생성된 Abnormal label 데이터
     [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/sample_abnormal.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
+  - 기본적으로 값의 90%가 0인 경우의 데이터에 대한 샘플 추가 필요
+
 * * *
 
 <br/>  <br/>
