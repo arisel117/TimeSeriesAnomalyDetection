@@ -39,6 +39,7 @@
 ## AutoML
   - [관련 정보](https://github.com/arisel117/AutoML)
   - 세부 사용법 첨부 with 코드
+## Dlinear와 timesnet 도 추가하자
 * * *
 
 <br/>  <br/>
