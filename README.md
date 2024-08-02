@@ -30,6 +30,7 @@
   - 같이 생성된 Abnormal label 데이터
     [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/sample_abnormal.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
   - 기본적으로 값의 90%가 0인 경우의 데이터에 대한 샘플 추가 필요
+  - 한 Node 기준의 데이터가 아니라 여러 랜덤 패턴 Node(30+)의 기준으로 데이터를 생성하고, 이를 sum/mean하여 상위 Group Node 패턴도 생성 필요
 
 * * *
 
