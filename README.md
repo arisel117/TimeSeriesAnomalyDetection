@@ -17,6 +17,32 @@
 * * *
 ## 데이터 생성기 (v1.1)
   - [코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/generator.py)
+    ```python
+    from generator import TimeSeriesDataGenerator
+
+
+    date_range = {
+        'start_time': '2024-01-01 00:00:00',
+        'end_time': '2024-12-31 23:59:59',
+        'freq': 'min',
+    }
+
+    clipping_range = {
+        'min_bound': 0.,
+        'max_bound': 500.,
+    }
+
+    pattern = {
+        'Basic': 6,    # -1(None, Default), 1(Linear), 2(Sin), 3(Uniform), 4(Normal), 5(Server), 6(User)
+        'Vibration': 1,    # -1(None, Default), 1(Noraml), 2(Uniform)
+        'Abnoraml': -1,    # -1(None, Default), 1(1% Point Only), 2(2.5% Point, 2.5% Pattern),
+                           # 3(5% Point, 5% Pattern), 4(12.5% Point, 12.5% Pattern), 5(25% Point, 25% Pattern)
+    }
+
+
+    generator = TimeSeriesDataGenerator(date_range=date_range, clipping_range=clipping_range)
+    data, abnormal_label = generator.run(pattern=pattern, abnormal=True, plot=True, seed=42)
+    ```
   - 현재 108(6 * 3 * 6)개의 Sample Pattern이 제공됨
   - 버전 설명
     - 데이터 생성기 추가 (v0.1)
