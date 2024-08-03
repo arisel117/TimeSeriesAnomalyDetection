@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import pandas as pd
 from collections import deque
@@ -8,13 +10,8 @@ import matplotlib.pyplot as plt
 
 
 class TimeSeriesDataGenerator(object):
-    def __init__(self, ) -> None:
-        pass
-
-
-    def run(
+    def __init__(
         self,
-        trend: list,
         date_range: dict = {
             'start_time': '2024-01-01 00:00:00',
             'end_time': '2024-12-31 23:59:59',
@@ -22,16 +19,27 @@ class TimeSeriesDataGenerator(object):
         clipping_range: dict = {
             'min_bound': 0.,
             'max_bound': 500., },
-        plot: bool = False,
-        seed: int = 42,
-    ) -> pd.DataFrame:
-        self.trend = trend
+    ) -> None:
         self.date_range = date_range
         self.clipping_range = clipping_range
 
+
+    def run(
+        self,
+        pattern: dict | None = None,
+        trend: list | None = None,
+        abnormal: bool = False,
+        plot: bool = False,
+        seed: int | None = None,
+    ) -> pd.DataFrame | tuple:
+        if trend is None:
+            if pattern is None:
+                raise ValueError("Either trend or pattern must be input.")
+            trend = self._get_sample_pattern(pattern=pattern)
+
         np.random.seed(seed)
         data = self._get_baseline()
-        data, abnormal_label = self._get_trend(data)
+        data, abnormal_label = self._get_trend(data, trend)
 
         data['value'] = data['value'].where(
             data['value'] > self.clipping_range['min_bound'], self.clipping_range['min_bound'])
@@ -39,29 +47,45 @@ class TimeSeriesDataGenerator(object):
             data['value'] < self.clipping_range['max_bound'], self.clipping_range['max_bound'])
 
         data = data.sort_values(['datetime']).reset_index(drop=True)
-        abnormal_label = abnormal_label.sort_values(['datetime']).reset_index(drop=True)
-
         if plot:
-            self.plot_data(data)
-            self.plot_data(abnormal_label)
-        return data, abnormal_label
+            self._plot_data(data)
+
+        if abnormal:
+            abnormal_label = abnormal_label.sort_values(['datetime']).reset_index(drop=True)
+            if plot:
+                self._plot_data(abnormal_label)
+            return data, abnormal_label
+
+        return data
 
 
-    def _get_trend(self, data: pd.DataFrame) -> pd.DataFrame:
+    def _get_sample_pattern(
+        self,
+        pattern: dict = {'Basic': -1, 'Vibration': -1, 'Abnoraml': -1, },
+    ) -> list:
+        trend = []
+        trend += self._get_basic_pattern(pattern_idx=pattern['Basic'])
+        trend += self._get_vibration_pattern(pattern_idx=pattern['Vibration'])
+        trend += self._get_abnoraml_pattern(pattern_idx=pattern['Abnoraml'])
+
+        return trend
+
+
+    def _get_trend(self, data: pd.DataFrame, trend: list) -> pd.DataFrame:
         data = data.copy()
         abnormal_label = pd.DataFrame(index=data.index)
         abnormal_label['datetime'] = data['datetime']
         abnormal_label['label'] = 0
 
-        for _trend in self.trend:
+        for _trend in trend:
             method = _trend['method'].lower()
             start = _trend['start_value'] if 'start_value' in _trend else 0.
             end = _trend['end_value'] if 'end_value' in _trend else 0.
             freq = _trend['freq'].lower() if 'freq' in _trend else 'min'
             range_value = _trend['range_value'] if 'range_value' in _trend else 1
             cycle = _trend['cycle_value'] if 'cycle_value' in _trend else 1
-            custom_value = _trend['custom_value'] if 'custom_value' in _trend else []
-
+            custom_value = _trend['custom_value'] if 'custom_value' in _trend else None
+            custom_prop = _trend['custom_prop'] if 'custom_prop' in _trend else None
 
             if method == 'abnormal_point':
                 data = data.sort_values(['datetime']).reset_index(drop=True)
@@ -107,50 +131,26 @@ class TimeSeriesDataGenerator(object):
             elif method == 'normal':
                 extd['cache'] = self._linear(data_len=_len, start=start, end=end)
                 extd['cache'] += self._normal(data_len=_len, data_range=range_value)
+            elif method == 'choice_sum':
+                extd['cache'] = self._choice(data_len=_len, custom_value=custom_value, custom_prop=custom_prop)
+            elif method == 'choice_x':
+                extd['cache'] = self._choice(data_len=_len, custom_value=custom_value, custom_prop=custom_prop)
             elif method == 'custom':
                 extd['cache'] = self._linear(data_len=_len, start=start, end=end)
                 extd['cache'] += self._custom(data_len=_len, custom_value=custom_value)
             else:
                 raise ValueError("method must be one of \
-                    ('linear', 'sin', 'uniform', 'normal', 'custom', \
-                    'abnormal_point', 'abnormal_pattern').")
+                    ('linear', 'sin', 'uniform', 'normal', 'choice_sum', 'choice_x', \
+                    'custom', 'abnormal_point', 'abnormal_pattern').")
 
             data = pd.merge(data, extd, on='freq_time')
-            data['value'] += data['cache']
+            if method == 'choice_x':
+                data['value'] *= data['cache']
+            else:
+                data['value'] += data['cache']
             data.drop(columns=['freq_time', 'cache'], inplace=True)
 
         return data, abnormal_label
-
-
-    def plot_data(
-        self,
-        data: pd.DataFrame,
-    ) -> None:
-
-        _, axes = plt.subplots(2, 2, figsize=(20, 10))
-
-        sub_data = data.copy()
-        axes[0, 0].plot(sub_data.set_index(['datetime']))
-        axes[0, 0].set_title('Entire Data')
-
-        sub_data = data[data['datetime'].dt.month.isin([1])]
-        axes[0, 1].plot(sub_data.set_index(['datetime']))
-        axes[0, 1].set_title('1 Month Data')
-
-        sub_data = data[data['datetime'].dt.month.isin([1])].reset_index(drop=True)
-        sub_data = sub_data[sub_data['datetime'].dt.day.isin([1, 2, 3, 4, 5, 6, 7])]
-        axes[1, 0].plot(sub_data.set_index(['datetime']))
-        axes[1, 0].set_title('1 Week Data')
-
-        sub_data = data[data['datetime'].dt.month.isin([1])].reset_index(drop=True)
-        sub_data = sub_data[sub_data['datetime'].dt.day.isin([1])]
-        axes[1, 1].plot(sub_data.set_index(['datetime']))
-        axes[1, 1].set_title('1 Day Data')
-
-        plt.tight_layout()
-        plt.show()
-
-        return None
 
 
     def _get_baseline(
@@ -200,6 +200,15 @@ class TimeSeriesDataGenerator(object):
         data_range: int = 10,
     ) -> np.array:
         return np.random.normal(loc=0, scale=data_range / 2, size=data_len)
+
+
+    def _choice(
+        self,
+        data_len: int = 100,
+        custom_value: list = [0.],
+        custom_prop: list = [1.],
+    ) -> np.array:
+        return np.random.choice(custom_value, size=data_len, p=custom_prop)
 
 
     def _custom(
@@ -254,6 +263,48 @@ class TimeSeriesDataGenerator(object):
         return data, abnormal_label
 
 
+    def _abnormal_pattern(
+        self,
+        data: pd.DataFrame,
+        abnormal_label: pd.DataFrame,
+        abnormal_ratio: float,
+        abnormal_range: tuple,
+        abnormal_dist: tuple,
+    ) -> pd.DataFrame:
+        data = data.copy()
+        abnormal_label = abnormal_label.copy()
+
+        min_value, max_value = sorted(abnormal_dist)
+        abnormals = self._get_abnormal(
+            target_sum=int(len(data) * abnormal_ratio),
+            min_value=min_value,
+            max_value=max_value)
+        normals = self._get_normal(
+            target_sum=len(data) - sum(abnormals),
+            normals_len=len(abnormals))
+
+        abnormals_center = np.random.choice(
+            [abs(abnormal_range[0]), -abs(abnormal_range[0])],
+            size=len(abnormals)) + self._normal(
+            data_len=len(abnormals),
+            data_range=abnormal_range[1])
+
+        current_index = 0
+        for a, b, _cen in zip(normals, abnormals, abnormals_center):
+            current_index += a
+            data.loc[current_index: current_index + b - 1, "value"] = _cen
+            + self._normal(data_len=b, data_range=abnormal_range[1])
+            current_index += b
+
+        current_index = 0
+        for a, b, _cen in zip(normals, abnormals, abnormals_center):
+            current_index += a
+            abnormal_label.loc[current_index: current_index + b - 1, "label"] = 1
+            current_index += b
+
+        return data, abnormal_label
+
+
     def _get_abnormal(
         self,
         target_sum: int,
@@ -299,60 +350,6 @@ class TimeSeriesDataGenerator(object):
         normals = sorted(normals + [target_sum])
 
         return [normals[i + 1] - normals[i] for i in range(len(normals) - 1)]
-
-
-    def _abnormal_pattern(
-        self,
-        data: pd.DataFrame,
-        abnormal_label: pd.DataFrame,
-        abnormal_ratio: float,
-        abnormal_range: tuple,
-        abnormal_dist: tuple,
-    ) -> pd.DataFrame:
-        data = data.copy()
-        abnormal_label = abnormal_label.copy()
-
-        min_value, max_value = sorted(abnormal_dist)
-        abnormals = self._get_abnormal(
-            target_sum=int(len(data) * abnormal_ratio),
-            min_value=min_value,
-            max_value=max_value)
-        normals = self._get_normal(
-            target_sum=len(data) - sum(abnormals),
-            normals_len=len(abnormals))
-
-        abnormals_center = np.random.choice(
-            [abs(abnormal_range[0]), -abs(abnormal_range[0])],
-            size=len(abnormals)) + self._normal(
-            data_len=len(abnormals),
-            data_range=abnormal_range[1])
-
-        current_index = 0
-        for a, b, _cen in zip(normals, abnormals, abnormals_center):
-            current_index += a
-            data.loc[current_index: current_index + b - 1, "value"] = _cen
-            + self._normal(data_len=b, data_range=abnormal_range[1])
-            current_index += b
-
-        current_index = 0
-        for a, b, _cen in zip(normals, abnormals, abnormals_center):
-            current_index += a
-            abnormal_label.loc[current_index: current_index + b - 1, "label"] = 1
-            current_index += b
-
-        return data, abnormal_label
-
-
-    def get_sample_pattern(
-        self,
-        pattern: dict = {'Basic': -1, 'Vibration': -1, 'Abnoraml': -1, },
-    ) -> list:
-        trend = []
-        trend += self._get_basic_pattern(pattern_idx=pattern['Basic'])
-        trend += self._get_vibration_pattern(pattern_idx=pattern['Vibration'])
-        trend += self._get_abnoraml_pattern(pattern_idx=pattern['Abnoraml'])
-
-        return trend
 
 
     def _get_basic_pattern(
@@ -492,7 +489,7 @@ class TimeSeriesDataGenerator(object):
                     'range_value': 3.,
                 },
             ]
-        elif pattern_idx == 5:     # User Pattern
+        elif pattern_idx == 5:     # Server Pattern
             trend = [
                 {
                     'freq': 'month',
@@ -525,8 +522,47 @@ class TimeSeriesDataGenerator(object):
                         6, 4, 6, 5, 4, 0, -6, -8, -8, -10, -10, -10],
                 },
             ]
+        elif pattern_idx == 6:     # User Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'sin',
+                    'start_value': -5.,
+                    'end_value': 5.,
+                    'cycle_value': 1,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'custom',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'custom_value': [-6, -3, 2, 3, 4, 10, -10],
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'custom',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'custom_value': [
+                        -10, -10, -10, -10, -10, -10, -10, -8, -6, 0, 6, 10,
+                        6, 4, 6, 5, 4, 0, -6, -8, -8, -10, -10, -10],
+                },
+                {
+                    'freq': 'min',
+                    'method': 'choice_x',
+                    'custom_value': [0., 1.],
+                    'custom_prop': [0.85, 0.15],
+                },
+            ]
         else:
-            raise Exception("DataRangeError: Basic Pattern must be one of (-1, 1, 2, 3, 4, 5).")
+            raise Exception("DataRangeError: Basic Pattern must be one of (-1, 1, 2, 3, 4, 5, 6).")
 
         return trend
 
@@ -693,3 +729,59 @@ class TimeSeriesDataGenerator(object):
             raise Exception("DataRangeError: Abnoraml Pattern must be one of (-1, 1, 2, 3, 4, 5).")
 
         return trend
+
+
+    def _plot_data(
+        self,
+        data: pd.DataFrame,
+    ) -> None:
+        _, axes = plt.subplots(2, 2, figsize=(20, 10))
+
+        sub_data = data.copy()
+        axes[0, 0].plot(sub_data.set_index(['datetime']))
+        axes[0, 0].set_title('Entire Data')
+
+        sub_data = data[data['datetime'].dt.month.isin([1])]
+        axes[0, 1].plot(sub_data.set_index(['datetime']))
+        axes[0, 1].set_title('1 Month Data')
+
+        sub_data = data[data['datetime'].dt.month.isin([1])].reset_index(drop=True)
+        sub_data = sub_data[sub_data['datetime'].dt.day.isin([1, 2, 3, 4, 5, 6, 7])]
+        axes[1, 0].plot(sub_data.set_index(['datetime']))
+        axes[1, 0].set_title('1 Week Data')
+
+        sub_data = data[data['datetime'].dt.month.isin([1])].reset_index(drop=True)
+        sub_data = sub_data[sub_data['datetime'].dt.day.isin([1])]
+        axes[1, 1].plot(sub_data.set_index(['datetime']))
+        axes[1, 1].set_title('1 Day Data')
+
+        plt.tight_layout()
+        plt.show()
+
+        return None
+
+
+
+
+
+if __name__ == "__main__":
+    date_range = {
+        'start_time': '2024-01-01 00:00:00',
+        'end_time': '2024-12-31 23:59:59',
+        'freq': 'min',
+    }
+
+    clipping_range = {
+        'min_bound': 0.,
+        'max_bound': 500.,
+    }
+
+    pattern = {
+        'Basic': 6,    # -1(None, Default), 1(Linear), 2(Sin), 3(Uniform), 4(Normal), 5(Server), 6(User)
+        'Vibration': 1,    # -1(None, Default), 1(Noraml), 2(Uniform)
+        'Abnoraml': 1,    # -1(None, Default), 1(1% Point Only), 2(2.5% Point, 2.5% Pattern), 3(5% Point, 5% Pattern),
+                          # 4(12.5% Point, 12.5% Pattern), 5(25% Point, 25% Pattern)
+    }
+
+    generator = TimeSeriesDataGenerator(date_range=date_range, clipping_range=clipping_range)
+    data, abnormal_label = generator.run(pattern=pattern, abnormal=True, plot=True, seed=42)
