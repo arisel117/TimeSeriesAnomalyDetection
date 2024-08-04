@@ -65,6 +65,52 @@
 <br/>  <br/>
 
 * * *
+## lazypredict
+  - [실행 코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/lazypredict.py)
+  - 실행 결과는 다음과 같음
+    |Model|Adjusted R-Squared|R-Squared|RMSE|Time Taken|
+    |---|---|---|---|---|
+    |**SVR|0.09|0.10|28.25|82.61**|
+    |NuSVR|0.09|0.10|28.25|94.58|
+    |**HistGradientBoostingRegressor|0.09|0.09|28.32|0.42**|
+    |GradientBoostingRegressor|0.09|0.09|28.35|24.64|
+    |MLPRegressor|0.08|0.08|28.43|26.87|
+    |**BayesianRidge|0.08|0.08|28.53|0.11**|
+    |RidgeCV|0.08|0.08|28.53|0.15|
+    |Ridge|0.08|0.08|28.53|0.04|
+    |LassoLarsCV|0.08|0.08|28.53|0.16|
+    |Lars|0.08|0.08|28.53|0.06|
+    |**LassoLarsIC|0.08|0.08|28.53|0.08**|
+    |LarsCV|0.08|0.08|28.53|0.17|
+    |**LinearRegression|0.08|0.08|28.53|0.05**|
+    |TransformedTargetRegressor|0.08|0.08|28.53|0.04|
+    |LassoCV|0.08|0.08|28.53|0.33|
+    |ElasticNetCV|0.07|0.08|28.53|0.32|
+    |PoissonRegressor|0.07|0.08|28.56|0.36|
+    |AdaBoostRegressor|0.07|0.08|28.56|3.15|
+    |SGDRegressor|0.07|0.08|28.57|0.26|
+    |TweedieRegressor|0.07|0.07|28.58|0.24|
+    |ElasticNet|0.07|0.07|28.62|0.07|
+    |Lasso|0.06|0.07|28.69|0.15|
+    |LassoLars|0.06|0.07|28.69|0.10|
+    |LGBMRegressor|0.06|0.07|28.70|0.26|
+    |OrthogonalMatchingPursuitCV|0.04|0.04|29.13|0.10|
+    |OrthogonalMatchingPursuit|0.02|0.03|29.33|0.04|
+    |DummyRegressor|-0.00|-0.00|29.71|0.03|
+    |XGBRegressor|-0.05|-0.05|30.45|15.45|
+    |HuberRegressor|-0.06|-0.05|30.50|1.32|
+    |LinearSVR|-0.09|-0.09|30.95|1.28|
+    |KNeighborsRegressor|-0.09|-0.09|30.98|0.25|
+    |PassiveAggressiveRegressor|-0.18|-0.17|32.20|0.14|
+    |RandomForestRegressor|-0.22|-0.21|32.72|126.90|
+    |RANSACRegressor|-0.25|-0.25|33.23|0.28|
+    |BaggingRegressor|-0.27|-0.26|33.40|12.90|
+    |ExtraTreesRegressor|-0.38|-0.37|34.80|15.52|
+    |ExtraTreeRegressor|-0.56|-0.55|37.04|0.25|
+    |DecisionTreeRegressor|-0.63|-0.62|37.87|1.72|
+    |KernelRidge|-9.66|-9.63|96.86|33.20|
+    |GaussianProcessRegressor|-135.67|-135.21|346.79|170.62|
+
 ## AutoML
   - [관련 정보](https://github.com/arisel117/AutoML)
   - 세부 사용법 첨부 with 코드
