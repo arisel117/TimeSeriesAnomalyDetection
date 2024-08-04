@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
+import matplotlib.pyplot as plt
 
 # !pip install lazypredict
 from lazypredict.Supervised import LazyRegressor
@@ -33,6 +34,46 @@ def preprocessing(
 
     return train_X, train_Y, test_X, test_Y
 
+
+def get_result(
+    test_X: pd.DataFrame,
+    test_Y: pd.DataFrame,
+    reg: LazyRegressor,
+    window: int = 30,
+    model_name: str = "LinearRegression",
+    minutes: list = [1, 5, 15, 30],
+):
+    # get predict result
+    res = test_X.copy()
+    for i in range(window):
+        res[f"pred_{i + 1}"] = reg.models[model_name].predict(res.iloc[:, -30:].values)
+    res = res.iloc[:, -30:]
+
+    res["real_1"] = test_Y.values
+    for i in range(2, window + 1):
+        res[f"real_{i}"] = res.iloc[:, -1].shift(-1)
+    res.dropna(inplace=True)
+
+    # get figure
+    fig, axes = plt.subplots(len(minutes), 2, figsize=(20, 5 * len(minutes)))
+
+    fig.suptitle(f'{model_name} Model Time Series Prediction \n', fontsize=20)
+
+    axes[0, 0].set_title('Entire Data', fontsize=15)
+    axes[0, 1].set_title('Last 1 Day Data', fontsize=15)
+    for i, minute in enumerate(minutes):
+        axes[i, 0].set_ylabel(f'Predict {minute} Min After', labelpad=15, fontsize=15)
+
+        axes[i, 0].plot(res[[f"real_{minute}", f"pred_{minute}"]], label=["real", "pred"])
+        axes[i, 0].legend(loc='upper left', fontsize=10)
+
+        axes[i, 1].plot(res[[f"real_{minute}", f"pred_{minute}"]].iloc[-24 * 60:], label=["real", "pred"])
+        axes[i, 1].legend(loc='upper left', fontsize=10)
+
+    plt.tight_layout()
+    plt.show()
+
+    return None
 
 
 
@@ -80,8 +121,14 @@ if __name__ == "__main__":
     )
     print(models)
 
-    model_name = "HistGradientBoostingRegressor"
+
+    model_name = "LinearRegression"
+
     res = pd.DataFrame(index=test_X.index)
     res["real"] = test_Y.values
     res["pred"] = reg.models[model_name].predict(test_X)
     print(res)
+
+
+    minutes = [1, 5, 15, 30]
+    get_result(test_X, test_Y, reg, window, model_name, minutes)
