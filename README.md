@@ -110,6 +110,8 @@
     |DecisionTreeRegressor|-0.63|-0.62|37.87|1.72|
     |KernelRidge|-9.66|-9.63|96.86|33.20|
     |GaussianProcessRegressor|-135.67|-135.21|346.79|170.62|
+  - 연산 속도가 빠른 LinearRegression 모델 예측 결과 시각화
+    [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/output_lazypredict.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/lazypredict.py)
 
 ## AutoML
   - [관련 정보](https://github.com/arisel117/AutoML)
