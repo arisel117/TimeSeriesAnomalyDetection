@@ -70,19 +70,19 @@
   - 실행 결과는 다음과 같음
     |Model|Adjusted R-Squared|R-Squared|RMSE|Time Taken|
     |---|---|---|---|---|
-    |**SVR|0.09|0.10|28.25|82.61**|
+    |**SVR**|0.09|0.10|**28.25**|82.61|
     |NuSVR|0.09|0.10|28.25|94.58|
-    |**HistGradientBoostingRegressor|0.09|0.09|28.32|0.42**|
+    |HistGradientBoostingRegressor|0.09|0.09|28.32|0.42|
     |GradientBoostingRegressor|0.09|0.09|28.35|24.64|
     |MLPRegressor|0.08|0.08|28.43|26.87|
-    |**BayesianRidge|0.08|0.08|28.53|0.11**|
+    |BayesianRidge|0.08|0.08|28.53|0.11|
     |RidgeCV|0.08|0.08|28.53|0.15|
     |Ridge|0.08|0.08|28.53|0.04|
     |LassoLarsCV|0.08|0.08|28.53|0.16|
     |Lars|0.08|0.08|28.53|0.06|
-    |**LassoLarsIC|0.08|0.08|28.53|0.08**|
+    |LassoLarsIC|0.08|0.08|28.53|0.08|
     |LarsCV|0.08|0.08|28.53|0.17|
-    |**LinearRegression|0.08|0.08|28.53|0.05**|
+    |**LinearRegression**|0.08|0.08|28.53|**0.05**|
     |TransformedTargetRegressor|0.08|0.08|28.53|0.04|
     |LassoCV|0.08|0.08|28.53|0.33|
     |ElasticNetCV|0.07|0.08|28.53|0.32|
