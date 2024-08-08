@@ -118,6 +118,39 @@
 
 ### Dlinear
   - [실행 코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/dlinear.py)
+  - 30분 예측 실험 결과
+    |Model|R-Squared|RMSE|
+    |---|---|---|
+    |1 min After|0.0446|28.3801|
+    |2 min After|0.0368|28.4962|
+    |3 min After|0.0450|28.3748|
+    |4 min After|0.0491|28.3134|
+    |5 min After|0.0437|28.3941|
+    |6 min After|0.0375|28.4853|
+    |7 min After|0.0494|28.3101|
+    |8 min After|0.0211|28.7274|
+    |9 min After|0.0433|28.3996|
+    |10 min After|0.0417|28.4245|
+    |11 min After|0.0456|28.3659|
+    |12 min After|0.0372|28.4905|
+    |13 min After|0.0316|28.5740|
+    |14 min After|0.0451|28.3729|
+    |15 min After|0.0468|28.3477|
+    |16 min After|0.0201|28.7422|
+    |17 min After|0.0188|28.7615|
+    |18 min After|0.0384|28.4728|
+    |19 min After|0.0426|28.4113|
+    |20 min After|0.0284|28.6213|
+    |21 min After|0.0125|28.8536|
+    |22 min After|0.0289|28.6133|
+    |23 min After|0.0426|28.4110|
+    |24 min After|0.0402|28.4465|
+    |25 min After|0.0419|28.4218|
+    |26 min After|0.0431|28.4028|
+    |27 min After|0.0309|28.5844|
+    |28 min After|0.0400|28.4497|
+    |29 min After|0.0364|28.5021|
+    |30 min After|0.0356|28.5154|
   - Dlinear 모델을 통한 예측 결과 시각화
     [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/output_dlinear.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/dlinear.py)
   
