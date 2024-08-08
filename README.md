@@ -65,7 +65,10 @@
 <br/>  <br/>
 
 * * *
-## lazypredict
+## AutoML
+  - [관련 정보](https://github.com/arisel117/AutoML)
+  - 세부 사용법 첨부 with 코드
+### lazypredict
   - [실행 코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/lazypredict.py)
   - 실행 결과는 다음과 같음
     |Model|Adjusted R-Squared|R-Squared|RMSE|Time Taken|
@@ -113,10 +116,7 @@
   - 연산 속도가 빠른 LinearRegression 모델 예측 결과 시각화
     [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/output_lazypredict.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/lazypredict.py)
 
-## AutoML
-  - [관련 정보](https://github.com/arisel117/AutoML)
-  - 세부 사용법 첨부 with 코드
-## Dlinear
+### Dlinear
   - [실행 코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/dlinear.py)
   - Dlinear 모델을 통한 예측 결과 시각화
     [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/output_dlinear.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/dlinear.py)
