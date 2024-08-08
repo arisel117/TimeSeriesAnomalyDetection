@@ -116,8 +116,11 @@
 ## AutoML
   - [관련 정보](https://github.com/arisel117/AutoML)
   - 세부 사용법 첨부 with 코드
-## Dlinear와 timesnet 도 추가하자
-  - scaler self 처리 후 infer 모듈 만들어서 데이터 돌리고, plt로 시각화해서 결과 추출 후 readme에 추가 필요
+## Dlinear
+  - [실행 코드 링크](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/dlinear.py)
+  - Dlinear 모델을 통한 예측 결과 시각화
+    [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/output_dlinear.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/dlinear.py)
+  
 * * *
 
 <br/>  <br/>
