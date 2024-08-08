@@ -1,401 +1,773 @@
 # -*- coding: utf-8 -*-
 
-import os
-
-import time
-import torch
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import StandardScaler
+from collections import deque
 import matplotlib.pyplot as plt
 
-from generator import TimeSeriesDataGenerator
 
 
 
-class LTSF_Linear(torch.nn.Module):
-    def __init__(self, window_size, forcast_size, individual, feature_size):
-        super(LTSF_Linear, self).__init__()
-        self.window_size = window_size
-        self.forcast_size = forcast_size
-        self.individual = individual
-        self.channels = feature_size
-        if self.individual:
-            self.Linear = torch.nn.ModuleList()
-            for _ in range(self.channels):
-                self.Linear.append(torch.nn.Linear(self.window_size, self.forcast_size))
-        else:
-            self.Linear = torch.nn.Linear(self.window_size, self.forcast_size)
 
-    def forward(self, x):
-        if self.individual:
-            output = torch.zeros([x.size(0), self.forcast_size, x.size(2)], dtype=x.dtype).to(x.device)
-            for i in range(self.channels):
-                output[:, :, i] = self.Linear[i](x[:, :, i])
-            x = output
-        else:
-            x = self.Linear(x.permute(0, 2, 1)).permute(0, 2, 1)
-        return x
-
-
-class moving_avg(torch.nn.Module):
-    def __init__(self, kernel_size, stride):
-        super(moving_avg, self).__init__()
-        self.kernel_size = kernel_size
-        self.avg = torch.nn.AvgPool1d(kernel_size=kernel_size, stride=stride, padding=0)
-
-    def forward(self, x):
-        front = x[:, 0:1, :].repeat(1, (self.kernel_size - 1) // 2, 1)
-        end = x[:, -1:, :].repeat(1, (self.kernel_size - 1) // 2, 1)
-        x = torch.cat([front, x, end], dim=1)
-        x = self.avg(x.permute(0, 2, 1))
-        x = x.permute(0, 2, 1)
-        return x
-
-
-class series_decomp(torch.nn.Module):
-    def __init__(self, kernel_size):
-        super(series_decomp, self).__init__()
-        self.moving_avg = moving_avg(kernel_size, stride=1)
-
-    def forward(self, x):
-        moving_mean = self.moving_avg(x)
-        residual = x - moving_mean
-        return moving_mean, residual
-
-
-class LTSF_DLinear(torch.nn.Module):
-    def __init__(self, window_size, forcast_size, kernel_size, individual, feature_size):
-        super(LTSF_DLinear, self).__init__()
-        self.window_size = window_size
-        self.forcast_size = forcast_size
-        self.decompsition = series_decomp(kernel_size)
-        self.individual = individual
-        self.channels = feature_size
-        if self.individual:
-            self.Linear_Seasonal = torch.nn.ModuleList()
-            self.Linear_Trend = torch.nn.ModuleList()
-            for i in range(self.channels):
-                self.Linear_Trend.append(torch.nn.Linear(self.window_size, self.forcast_size))
-                self.Linear_Trend[i].weight = torch.nn.Parameter(
-                    (1 / self.window_size) * torch.ones([self.forcast_size, self.window_size]))
-                self.Linear_Seasonal.append(torch.nn.Linear(self.window_size, self.forcast_size))
-                self.Linear_Seasonal[i].weight = torch.nn.Parameter(
-                    (1 / self.window_size) * torch.ones([self.forcast_size, self.window_size]))
-        else:
-            self.Linear_Trend = torch.nn.Linear(self.window_size, self.forcast_size)
-            self.Linear_Trend.weight = torch.nn.Parameter(
-                (1 / self.window_size) * torch.ones([self.forcast_size, self.window_size]))
-            self.Linear_Seasonal = torch.nn.Linear(self.window_size, self.forcast_size)
-            self.Linear_Seasonal.weight = torch.nn.Parameter(
-                (1 / self.window_size) * torch.ones([self.forcast_size, self.window_size]))
-
-    def forward(self, x):
-        trend_init, seasonal_init = self.decompsition(x)
-        trend_init, seasonal_init = trend_init.permute(0, 2, 1), seasonal_init.permute(0, 2, 1)
-        if self.individual:
-            trend_output = torch.zeros(
-                [trend_init.size(0), trend_init.size(1), self.forcast_size],
-                dtype=trend_init.dtype).to(trend_init.device)
-            seasonal_output = torch.zeros(
-                [seasonal_init.size(0), seasonal_init.size(1), self.forcast_size],
-                dtype=seasonal_init.dtype).to(seasonal_init.device)
-            for idx in range(self.channels):
-                trend_output[:, idx, :] = self.Linear_Trend[idx](trend_init[:, idx, :])
-                seasonal_output[:, idx, :] = self.Linear_Seasonal[idx](seasonal_init[:, idx, :])
-        else:
-            trend_output = self.Linear_Trend(trend_init)
-            seasonal_output = self.Linear_Seasonal(seasonal_init)
-        x = seasonal_output + trend_output
-        return x.permute(0, 2, 1)
-
-
-class LTSF_NLinear(torch.nn.Module):
-    def __init__(self, window_size, forcast_size, individual, feature_size):
-        super(LTSF_NLinear, self).__init__()
-        self.window_size = window_size
-        self.forcast_size = forcast_size
-        self.individual = individual
-        self.channels = feature_size
-        if self.individual:
-            self.Linear = torch.nn.ModuleList()
-            for i in range(self.channels):
-                self.Linear.append(torch.nn.Linear(self.window_size, self.forcast_size))
-        else:
-            self.Linear = torch.nn.Linear(self.window_size, self.forcast_size)
-
-    def forward(self, x):
-        seq_last = x[:, -1:, :].detach()
-        x = x - seq_last
-        if self.individual:
-            output = torch.zeros([x.size(0), self.forcast_size, x.size(2)], dtype=x.dtype).to(x.device)
-            for i in range(self.channels):
-                output[:, :, i] = self.Linear[i](x[:, :, i])
-            x = output
-        else:
-            x = self.Linear(x.permute(0, 2, 1)).permute(0, 2, 1)
-        x = x + seq_last
-        return x
-
-
-class TrainSeq(object):
+class TimeSeriesDataGenerator(object):
     def __init__(
         self,
-        model: torch.nn.Module,
-        criterion: torch.nn.modules.loss,
-        optimizer: torch.optim,
-        epochs: int = 50,
-        window: int = 60,
-        forcast: int = 30,
-        batch: int = 32,
-        scaling: bool = False,
-        device: str = 'cpu',
-        save_path: str = "./",
-        verbose: int = 0,
-        seed: int | None = None,
+        date_range: dict = {
+            'start_time': '2024-01-01 00:00:00',
+            'end_time': '2024-12-31 23:59:59',
+            'freq': 'min', },
+        clipping_range: dict = {
+            'min_bound': 0.,
+            'max_bound': 500., },
     ) -> None:
-        self.model = model
-        self.criterion = criterion
-        self.optimizer = optimizer
-        self.epochs = epochs
-        self.window = window
-        self.forcast = forcast
-        self.batch = batch
-        self.scaling = scaling
-        self.device = device
-        self.save_path = save_path
-        self.verbose = verbose
-        self.seed = seed
-        self.log = pd.DataFrame(columns=["train_loss", "valid_loss", "test_loss"])
+        self.date_range = date_range
+        self.clipping_range = clipping_range
 
-    def _train(
-        self,
-        dataloader: torch.utils.data.dataloader.DataLoader,
-    ):
-        self.model.train()
-        loss_list = []
-        for X, real, _ in dataloader:
-            self.optimizer.zero_grad()
-            pred = self.model(X.to(self.device))
-            loss = self.criterion(pred, real.to(self.device))
-            loss.backward()
-            self.optimizer.step()
-            loss_list.append(loss.item())
-        return np.mean(loss_list)
-
-    @torch.no_grad()
-    def _test(
-        self,
-        dataloader: torch.utils.data.dataloader.DataLoader,
-    ):
-        self.model.eval()
-        loss_list = []
-        for X, real, _ in dataloader:
-            pred = self.model(X.to(self.device))
-            loss = self.criterion(pred, real.to(self.device))
-            loss_list.append(loss.item())
-        return np.mean(loss_list)
-
-    def _get_dataloader(
-        self,
-        data: pd.DataFrame,
-    ) -> tuple:
-        # Data Scaling
-        if self.scaling:
-            self.scaler = StandardScaler()
-            self.scaler.fit(data)
-            data = pd.DataFrame(
-                data=self.scaler.transform(data), index=data.index, columns=data.columns)
-
-        # Gen Dataset
-        dataset = TimeSeriesDataset(
-            data.values.astype(np.float32),
-            data.index.values.astype(np.int64), self.window, self.forcast)
-
-        _train_len = int(len(dataset) * 0.6)
-        _valid_len = _train_len + int(len(dataset) * 0.2)
-        _indices = list(range(len(dataset)))
-
-        train_dataset = torch.utils.data.Subset(dataset, _indices[:_train_len])
-        valid_dataset = torch.utils.data.Subset(dataset, _indices[_train_len:_valid_len])
-        test_dataset = torch.utils.data.Subset(dataset, _indices[_valid_len:])
-
-        train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=self.batch, shuffle=True)
-        valid_dataloader = torch.utils.data.DataLoader(valid_dataset, batch_size=self.batch, shuffle=False)
-        test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=self.batch, shuffle=False)
-
-        return train_dataloader, valid_dataloader, test_dataloader
-
-    def train(
-        self,
-        train_dataloader: torch.utils.data.dataloader.DataLoader,
-        valid_dataloader: torch.utils.data.dataloader.DataLoader,
-        test_dataloader: torch.utils.data.dataloader.DataLoader,
-    ):
-        best_loss = np.inf
-        for epoch in range(1, self.epochs + 1):
-            required_time = time.time()
-            train_loss = self._train(train_dataloader)
-            valid_loss = self._test(valid_dataloader)
-            test_loss = self._test(test_dataloader)
-
-            required_time = time.time() - required_time
-            self.log.loc[epoch] = {
-                "train_loss": train_loss,
-                "valid_loss": valid_loss,
-                "test_loss": test_loss,
-                "required_time": required_time,
-            }
-
-            if self.verbose:
-                print(
-                    f"epoch={epoch:>3},",
-                    f"train_loss={train_loss:.5f},",
-                    f"valid_loss={valid_loss:.5f},",
-                    f"test_loss={test_loss:.5f},",
-                    f"required_time={required_time:.2f}sec",
-                    flush=True)
-
-            if valid_loss < best_loss:
-                os.makedirs(self.save_path, exist_ok=True)
-                torch.save(self.model, os.path.join(self.save_path, "model.pth"))
-
-                if self.verbose:
-                    print(
-                        f"    Model Saved: best_loss={best_loss:.5f},",
-                        f"valid_loss={valid_loss:.5f},",
-                        f"test_loss={test_loss:.5f}",
-                        flush=True)
-                best_loss = valid_loss
-
-        self.model = torch.load(os.path.join(self.save_path, "model.pth"))
-        test_loss = self._test(test_dataloader)
-        print(f"Best Model Result: test_loss={test_loss:.5f}", flush=True)
 
     def run(
         self,
+        pattern: dict | None = None,
+        trend: list | None = None,
+        abnormal: bool = False,
+        plot: bool = False,
+        seed: int | None = None,
+    ) -> pd.DataFrame | tuple:
+        if trend is None:
+            if pattern is None:
+                raise ValueError("Either trend or pattern must be input.")
+            trend = self._get_sample_pattern(pattern=pattern)
+
+        np.random.seed(seed)
+        data = self._get_baseline()
+        data, abnormal_label = self._get_trend(data, trend)
+
+        data['value'] = data['value'].where(
+            data['value'] > self.clipping_range['min_bound'], self.clipping_range['min_bound'])
+        data['value'] = data['value'].where(
+            data['value'] < self.clipping_range['max_bound'], self.clipping_range['max_bound'])
+
+        data = data.sort_values(['datetime']).reset_index(drop=True)
+        if plot:
+            self._plot_data(data)
+
+        if abnormal:
+            abnormal_label = abnormal_label.sort_values(['datetime']).reset_index(drop=True)
+            if plot:
+                self._plot_data(abnormal_label)
+            return data, abnormal_label
+
+        return data
+
+
+    def _get_sample_pattern(
+        self,
+        pattern: dict = {'Basic': -1, 'Vibration': -1, 'Abnoraml': -1, },
+    ) -> list:
+        trend = []
+        trend += self._get_basic_pattern(pattern_idx=pattern['Basic'])
+        trend += self._get_vibration_pattern(pattern_idx=pattern['Vibration'])
+        trend += self._get_abnoraml_pattern(pattern_idx=pattern['Abnoraml'])
+
+        return trend
+
+
+    def _get_trend(self, data: pd.DataFrame, trend: list) -> pd.DataFrame:
+        data = data.copy()
+        abnormal_label = pd.DataFrame(index=data.index)
+        abnormal_label['datetime'] = data['datetime']
+        abnormal_label['label'] = 0
+
+        for _trend in trend:
+            method = _trend['method'].lower()
+            start = _trend['start_value'] if 'start_value' in _trend else 0.
+            end = _trend['end_value'] if 'end_value' in _trend else 0.
+            freq = _trend['freq'].lower() if 'freq' in _trend else 'min'
+            range_value = _trend['range_value'] if 'range_value' in _trend else 1
+            cycle = _trend['cycle_value'] if 'cycle_value' in _trend else 1
+            custom_value = _trend['custom_value'] if 'custom_value' in _trend else None
+            custom_prop = _trend['custom_prop'] if 'custom_prop' in _trend else None
+
+            if method == 'abnormal_point':
+                data = data.sort_values(['datetime']).reset_index(drop=True)
+                data, abnormal_label = self._abnormal_point(
+                    data=data,
+                    abnormal_label=abnormal_label,
+                    abnormal_ratio=_trend['abnormal_ratio'],
+                    abnormal_range=_trend['abnormal_range'])
+                continue
+            elif method == 'abnormal_pattern':
+                data = data.sort_values(['datetime']).reset_index(drop=True)
+                data, abnormal_label = self._abnormal_pattern(
+                    data=data,
+                    abnormal_label=abnormal_label,
+                    abnormal_ratio=_trend['abnormal_ratio'],
+                    abnormal_range=_trend['abnormal_range'],
+                    abnormal_dist=_trend['abnormal_dist'])
+                continue
+
+            if freq in ['year', 'y', 'a']:
+                data['freq_time'] = data['datetime'].dt.year
+            elif freq in ['month', 'm']:
+                data['freq_time'] = data['datetime'].dt.month
+            elif freq in ['weak', 'w', 'day', 'd']:    # Day is also treated weakly.
+                data['freq_time'] = data['datetime'].dt.weekday
+            elif freq in ['hour', 'h']:
+                data['freq_time'] = data['datetime'].dt.hour
+            elif freq in ['min']:
+                data['freq_time'] = data['datetime'].dt.minute
+            else:
+                raise ValueError("freq must one of ['year', 'month', 'weak', 'hour', 'min'].")
+            extd = pd.DataFrame(sorted(data['freq_time'].unique()), columns=['freq_time'])
+            _len = len(extd)
+
+            if method == 'linear':
+                extd['cache'] = self._linear(data_len=_len, start=start, end=end)
+            elif method == 'sin':
+                extd['cache'] = self._linear(data_len=_len, start=start, end=end)
+                extd['cache'] += self._sin(data_len=_len, data_range=range_value, cycle=cycle)
+            elif method == 'uniform':
+                extd['cache'] = self._linear(data_len=_len, start=start, end=end)
+                extd['cache'] += self._uniform(data_len=_len, data_range=range_value)
+            elif method == 'normal':
+                extd['cache'] = self._linear(data_len=_len, start=start, end=end)
+                extd['cache'] += self._normal(data_len=_len, data_range=range_value)
+            elif method == 'choice_sum':
+                extd['cache'] = self._choice(data_len=_len, custom_value=custom_value, custom_prop=custom_prop)
+            elif method == 'choice_x':
+                extd['cache'] = self._choice(data_len=_len, custom_value=custom_value, custom_prop=custom_prop)
+            elif method == 'custom':
+                extd['cache'] = self._linear(data_len=_len, start=start, end=end)
+                extd['cache'] += self._custom(data_len=_len, custom_value=custom_value)
+            else:
+                raise ValueError("method must be one of \
+                    ('linear', 'sin', 'uniform', 'normal', 'choice_sum', 'choice_x', \
+                    'custom', 'abnormal_point', 'abnormal_pattern').")
+
+            data = pd.merge(data, extd, on='freq_time')
+            if method == 'choice_x':
+                data['value'] *= data['cache']
+            else:
+                data['value'] += data['cache']
+            data.drop(columns=['freq_time', 'cache'], inplace=True)
+
+        return data, abnormal_label
+
+
+    def _get_baseline(
+        self,
+    ) -> pd.DataFrame:
+        data = pd.DataFrame(
+            pd.date_range(
+                start=self.date_range['start_time'],
+                end=self.date_range['end_time'],
+                freq=self.date_range['freq'],),
+            columns=['datetime'],
+        )
+        data['value'] = 0
+
+        return data
+
+
+    def _linear(
+        self,
+        data_len: int = 100,
+        start: int = 1,
+        end: int = 100,
+    ) -> np.array:
+        return np.linspace(start=start, stop=end, num=data_len)
+
+
+    def _sin(
+        self,
+        data_len: int = 100,
+        data_range: int = 10,
+        cycle: int = 1,
+    ) -> np.array:
+        return np.sin(np.linspace(start=0, stop=cycle * 2 * np.pi, num=data_len)) * data_range
+
+
+    def _uniform(
+        self,
+        data_len: int = 100,
+        data_range: int = 10,
+    ) -> np.array:
+        return np.random.uniform(low=-abs(data_range // 2), high=abs(data_range // 2), size=data_len)
+
+
+    def _normal(
+        self,
+        data_len: int = 100,
+        data_range: int = 10,
+    ) -> np.array:
+        return np.random.normal(loc=0, scale=data_range / 2, size=data_len)
+
+
+    def _choice(
+        self,
+        data_len: int = 100,
+        custom_value: list = [0.],
+        custom_prop: list = [1.],
+    ) -> np.array:
+        return np.random.choice(custom_value, size=data_len, p=custom_prop)
+
+
+    def _custom(
+        self,
+        data_len: int = 100,
+        custom_value: list = [],
+    ) -> np.array:
+        custom_value = custom_value.copy()
+
+        if len(custom_value) > data_len:
+            custom_value = custom_value[:data_len]
+        elif len(custom_value) == data_len:
+            custom_value = custom_value
+        else:
+            custom_value = custom_value + [0] * (data_len - len(custom_value))
+
+        return np.array(custom_value)
+
+
+    def _abnormal_point(
+        self,
+        data: pd.DataFrame,
+        abnormal_label: pd.DataFrame,
+        abnormal_ratio: float,
+        abnormal_range: tuple,
+    ) -> pd.DataFrame:
+        data = data.copy()
+        abnormal_label = abnormal_label.copy()
+
+        abnormal_cnt = int(len(data) * abnormal_ratio)
+        extd = pd.DataFrame(
+            data=np.random.choice(
+                [abs(abnormal_range[0]), -abs(abnormal_range[0])],
+                size=abnormal_cnt) + self._normal(
+                    data_len=abnormal_cnt, data_range=abnormal_range[1]),
+            index=np.random.choice(
+                [i for i in range(len(data))],
+                size=abnormal_cnt,
+                replace=False),
+            columns=['cache'],
+        )
+
+        data = data.join(extd, how='left')
+        data['value'] += data['cache'].fillna(0)
+        data.drop(columns=['cache'], inplace=True)
+
+        extd['cache'] = 1
+        abnormal_label = abnormal_label.join(extd, how='left')
+        abnormal_label['label'] += abnormal_label['cache'].fillna(0)
+        abnormal_label.drop(columns=['cache'], inplace=True)
+
+        return data, abnormal_label
+
+
+    def _abnormal_pattern(
+        self,
+        data: pd.DataFrame,
+        abnormal_label: pd.DataFrame,
+        abnormal_ratio: float,
+        abnormal_range: tuple,
+        abnormal_dist: tuple,
+    ) -> pd.DataFrame:
+        data = data.copy()
+        abnormal_label = abnormal_label.copy()
+
+        min_value, max_value = sorted(abnormal_dist)
+        abnormals = self._get_abnormal(
+            target_sum=int(len(data) * abnormal_ratio),
+            min_value=min_value,
+            max_value=max_value)
+        normals = self._get_normal(
+            target_sum=len(data) - sum(abnormals),
+            normals_len=len(abnormals))
+
+        abnormals_center = np.random.choice(
+            [abs(abnormal_range[0]), -abs(abnormal_range[0])],
+            size=len(abnormals)) + self._normal(
+            data_len=len(abnormals),
+            data_range=abnormal_range[1])
+
+        current_index = 0
+        for a, b, _cen in zip(normals, abnormals, abnormals_center):
+            current_index += a
+            data.loc[current_index: current_index + b - 1, "value"] = _cen
+            + self._normal(data_len=b, data_range=abnormal_range[1])
+            current_index += b
+
+        current_index = 0
+        for a, b, _cen in zip(normals, abnormals, abnormals_center):
+            current_index += a
+            abnormal_label.loc[current_index: current_index + b - 1, "label"] = 1
+            current_index += b
+
+        return data, abnormal_label
+
+
+    def _get_abnormal(
+        self,
+        target_sum: int,
+        min_value: int,
+        max_value: int,
+    ) -> list:
+        if (target_sum < min_value) or (target_sum > max_value * (target_sum // min_value)):
+            raise ValueError("'target_sum' must be greater than 'min_value'.")
+
+        abnormals = deque()
+        current_sum = 0
+
+        while current_sum < target_sum:
+            remaining_sum = target_sum - current_sum
+            if remaining_sum < min_value:
+                current_sum -= abnormals.popleft()
+                continue
+            elif remaining_sum > max_value:
+                abnormals.append(np.random.randint(min_value, max_value))
+                current_sum += abnormals[-1]
+            else:
+                abnormals.append(remaining_sum)
+                break
+
+        return list(abnormals)
+
+
+    def _get_normal(
+        self,
+        target_sum: int,
+        normals_len: int,
+    ) -> list:
+
+        normals = [0]
+        if target_sum < normals_len:
+            normals.extend([0] * (normals_len - target_sum))
+            normals_len += 1 - len(normals)
+
+        normals.extend(np.random.choice(
+            [i for i in range(target_sum)],
+            size=normals_len,
+            replace=False).tolist())
+        normals = sorted(normals + [target_sum])
+
+        return [normals[i + 1] - normals[i] for i in range(len(normals) - 1)]
+
+
+    def _get_basic_pattern(
+        self,
+        pattern_idx: int
+    ) -> list:
+        if pattern_idx == -1:    # No Pattern (None, Default)
+            trend = [
+                {
+                    'freq': 'year',
+                    'method': 'linear',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                },
+            ]
+        elif pattern_idx == 1:    # Linear Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+            ]
+        elif pattern_idx == 2:     # Sin Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'sin',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'cycle_value': 2,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'sin',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'cycle_value': 1,
+                    'range_value': 10.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'sin',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'cycle_value': 3,
+                    'range_value': 5.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'sin',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'cycle_value': 1,
+                    'range_value': 3.,
+                },
+            ]
+        elif pattern_idx == 3:     # Uniform Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 10.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 5.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+            ]
+        elif pattern_idx == 4:     # Normal Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 10.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 5.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+            ]
+        elif pattern_idx == 5:     # Server Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'sin',
+                    'start_value': -5.,
+                    'end_value': 5.,
+                    'cycle_value': 1,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'custom',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'custom_value': [-6, -3, 2, 3, 4, 10, -10],
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'custom',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'custom_value': [
+                        -10, -10, -10, -10, -10, -10, -10, -8, -6, 0, 6, 10,
+                        6, 4, 6, 5, 4, 0, -6, -8, -8, -10, -10, -10],
+                },
+            ]
+        elif pattern_idx == 6:     # User Pattern
+            trend = [
+                {
+                    'freq': 'month',
+                    'method': 'linear',
+                    'start_value': 100.,
+                    'end_value': 150.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'sin',
+                    'start_value': -5.,
+                    'end_value': 5.,
+                    'cycle_value': 1,
+                    'range_value': 20.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'custom',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'custom_value': [-6, -3, 2, 3, 4, 10, -10],
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'custom',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'custom_value': [
+                        -10, -10, -10, -10, -10, -10, -10, -8, -6, 0, 6, 10,
+                        6, 4, 6, 5, 4, 0, -6, -8, -8, -10, -10, -10],
+                },
+                {
+                    'freq': 'min',
+                    'method': 'choice_x',
+                    'custom_value': [0., 1.],
+                    'custom_prop': [0.85, 0.15],
+                },
+            ]
+        else:
+            raise Exception("DataRangeError: Basic Pattern must be one of (-1, 1, 2, 3, 4, 5, 6).")
+
+        return trend
+
+
+    def _get_vibration_pattern(
+        self,
+        pattern_idx: int
+    ) -> list:
+        if pattern_idx == -1:    # No Vibration (None, Default)
+            trend = []
+        elif pattern_idx == 1:    # 1% Abnormal (1% Point Only)
+            trend = [
+                {
+                    'freq': 'year',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'uniform',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+            ]
+        elif pattern_idx == 2:     # 5% Abnormal (2.5% Point, 2.5% Pattern)
+            trend = [
+                {
+                    'freq': 'year',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'month',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'weak',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'hour',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+                {
+                    'freq': 'min',
+                    'method': 'normal',
+                    'start_value': 0.,
+                    'end_value': 0.,
+                    'range_value': 3.,
+                },
+            ]
+        else:
+            raise Exception("DataRangeError: Vibration Pattern must be one of (-1, 1, 2).")
+
+        return trend
+
+
+    def _get_abnoraml_pattern(
+        self,
+        pattern_idx: int
+    ) -> list:
+        if pattern_idx == -1:    # No Abnormal (None, Default)
+            trend = []
+        elif pattern_idx == 1:    # 1% Abnormal (1% Point Only)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.01,
+                    'abnormal_range': (400., 50.),
+                },
+            ]
+        elif pattern_idx == 2:     # 5% Abnormal (2.5% Point, 2.5% Pattern)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.025,
+                    'abnormal_range': (400., 50.),
+                },
+                {
+                    'method': 'abnormal_pattern',
+                    'abnormal_ratio': 0.025,
+                    'abnormal_range': (400., 50.),
+                    'abnormal_dist': (30, 2 * 24 * 60),
+                },
+            ]
+        elif pattern_idx == 3:     # 10% Abnormal (5% Point, 5% Pattern)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.05,
+                    'abnormal_range': (400., 50.),
+                },
+                {
+                    'method': 'abnormal_pattern',
+                    'abnormal_ratio': 0.05,
+                    'abnormal_range': (400., 50.),
+                    'abnormal_dist': (30, 2 * 24 * 60),
+                },
+            ]
+        elif pattern_idx == 4:     # 25% Abnormal (12.5% Point, 12.5% Pattern)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.125,
+                    'abnormal_range': (400., 50.),
+                },
+                {
+                    'method': 'abnormal_pattern',
+                    'abnormal_ratio': 0.125,
+                    'abnormal_range': (400., 50.),
+                    'abnormal_dist': (12 * 60, 2 * 24 * 60),
+                },
+            ]
+        elif pattern_idx == 5:     # 50% Abnormal (25% Point, 25% Pattern)
+            trend = [
+                {
+                    'method': 'abnormal_point',
+                    'abnormal_ratio': 0.25,
+                    'abnormal_range': (400., 50.),
+                },
+                {
+                    'method': 'abnormal_pattern',
+                    'abnormal_ratio': 0.25,
+                    'abnormal_range': (400., 50.),
+                    'abnormal_dist': (12 * 60, 2 * 24 * 60),
+                },
+            ]
+        else:
+            raise Exception("DataRangeError: Abnoraml Pattern must be one of (-1, 1, 2, 3, 4, 5).")
+
+        return trend
+
+
+    def _plot_data(
+        self,
         data: pd.DataFrame,
     ) -> None:
-        total_required_time = time.time()
+        _, axes = plt.subplots(2, 2, figsize=(20, 10))
 
-        # seed
-        np.random.seed(self.seed)
-        torch.manual_seed(self.seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed(self.seed)
-            torch.cuda.manual_seed_all(self.seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+        sub_data = data.copy()
+        axes[0, 0].plot(sub_data.set_index(['datetime']))
+        axes[0, 0].set_title('Entire Data')
 
-        # preprocessing
-        train_dataloader, valid_dataloader, test_dataloader = self._get_dataloader(data)
+        sub_data = data[data['datetime'].dt.month.isin([1])]
+        axes[0, 1].plot(sub_data.set_index(['datetime']))
+        axes[0, 1].set_title('1 Month Data')
 
-        # train
-        if self.verbose:
-            print("Model Train Start!", flush=True)
-        self.train(train_dataloader, valid_dataloader, test_dataloader)
-        self.log.to_csv(os.path.join(self.save_path, "log.csv"), encoding="euc-kr")    # Change encoding if you want.
-        if self.verbose:
-            print(f"Model Train End! total_required_time={time.time() - total_required_time:.2f}sec", flush=True)
+        sub_data = data[data['datetime'].dt.month.isin([1])].reset_index(drop=True)
+        sub_data = sub_data[sub_data['datetime'].dt.day.isin([1, 2, 3, 4, 5, 6, 7])]
+        axes[1, 0].plot(sub_data.set_index(['datetime']))
+        axes[1, 0].set_title('1 Week Data')
 
-        test_x, test_y, test_date = [], [], []
-        for x, y, d in test_dataloader:
-            test_x.append(x.detach().cpu().squeeze().numpy())
-            test_y.append(y.detach().cpu().squeeze().numpy())
-            test_date.append(np.vectorize(lambda x: np.datetime64(int(x), 'ns'))(d.numpy()))
-        test_x = np.vstack(test_x)
-        test_y = np.vstack(test_y)
-        test_date = np.vstack(test_date)
+        sub_data = data[data['datetime'].dt.month.isin([1])].reset_index(drop=True)
+        sub_data = sub_data[sub_data['datetime'].dt.day.isin([1])]
+        axes[1, 1].plot(sub_data.set_index(['datetime']))
+        axes[1, 1].set_title('1 Day Data')
 
-        if self.scaling:
-            test_x = self.scaler.inverse_transform(test_x)
-            test_y = self.scaler.inverse_transform(test_y)
+        plt.tight_layout()
+        plt.show()
 
-        return self.model, test_x, test_y, test_date
-
-    @torch.no_grad()
-    def infer(
-        self,
-        data: np.ndarray,
-    ):
-        self.model.eval()
-        res = []
-        for i in range(data.shape[0] // self.batch + 1):    # First dim must be batch dim.
-            X = torch.Tensor(data[i * self.batch: (i + 1) * self.batch]).unsqueeze(-1)
-            res.append(self.model(X.to(self.device)).detach().cpu().squeeze().numpy())
-        res = np.vstack(res)
-        if self.scaling:
-            res = self.scaler.inverse_transform(res)
-        return res
+        return None
 
 
-class TimeSeriesDataset(torch.utils.data.Dataset):
-    def __init__(self, data, date, window_size, forecast_size):
-        self.data = data
-        self.date = date
-        self.window_size = window_size
-        self.forecast_size = forecast_size
 
-    def __len__(self):
-        return len(self.data) - self.window_size - self.forecast_size + 1
-
-    def __getitem__(self, idx):
-        x = self.data[idx:idx + self.window_size]
-        y = self.data[idx + self.window_size:idx + self.window_size + self.forecast_size]
-        d = self.date[idx + self.window_size:idx + self.window_size + self.forecast_size]
-        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32), torch.tensor(d)
-
-
-def get_result(
-    pred: np.ndarray,
-    real: np.ndarray,
-    date: np.ndarray,
-    model_name: str = "LinearRegression",
-    minutes: list = [1, 5, 15, 30],
-):
-    fig, axes = plt.subplots(len(minutes), 2, figsize=(20, 5 * len(minutes)))
-    fig.suptitle(f'{model_name} Model Time Series Prediction \n', fontsize=20)
-
-    axes[0, 0].set_title('Entire Data', fontsize=15)
-    axes[0, 1].set_title('Last 1 Day Data', fontsize=15)
-    for i, minute in enumerate(minutes):
-        res = pd.DataFrame({f"real_{minute}": real[:, i], f"pred_{minute}": pred[:, i]}, index=date[:, i])
-
-        axes[i, 0].set_ylabel(f'Predict {minute} Min After', labelpad=15, fontsize=15)
-
-        axes[i, 0].plot(res, label=["real", "pred"])
-        axes[i, 0].legend(loc='upper left', fontsize=10)
-
-        axes[i, 1].plot(res, label=["real", "pred"])
-        axes[i, 1].legend(loc='upper left', fontsize=10)
-
-    plt.tight_layout()
-    plt.show()
-
-    return None
 
 
 if __name__ == "__main__":
-
-    # Settings
-    # # Model Setting
-    lr = 0.001
-    epochs = 50
-    window = 60
-    forcast = 30
-    batch = 32
-    scaling = False
-    device = "cuda:0"
-    save_path = "./model"
-    verbose = 1
-    seed = 42
-    model_name = "DLinear"
-    minutes = [1, 5, 15, 30]
-
-    # # Data Setting
     date_range = {
         'start_time': '2024-01-01 00:00:00',
-        'end_time': '2024-01-31 23:59:59',
+        'end_time': '2024-12-31 23:59:59',
         'freq': 'min',
     }
 
@@ -405,60 +777,11 @@ if __name__ == "__main__":
     }
 
     pattern = {
-        'Basic': 2,        # -1(None, Default), 1(Linear), 2(Sin), 3(Uniform), 4(Normal), 5(Server), 6(User)
+        'Basic': 6,    # -1(None, Default), 1(Linear), 2(Sin), 3(Uniform), 4(Normal), 5(Server), 6(User)
         'Vibration': 1,    # -1(None, Default), 1(Noraml), 2(Uniform)
-        'Abnoraml': 1,     # -1(None, Default), 1(1% Point Only), 2(2.5% Point, 2.5% Pattern),
-                           # 3(5% Point, 5% Pattern), 4(12.5% Point, 12.5% Pattern), 5(25% Point, 25% Pattern)
+        'Abnoraml': 1,    # -1(None, Default), 1(1% Point Only), 2(2.5% Point, 2.5% Pattern), 3(5% Point, 5% Pattern),
+                          # 4(12.5% Point, 12.5% Pattern), 5(25% Point, 25% Pattern)
     }
 
-
-    # Execution Part
-    # # set device
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-    if torch.cuda.is_available():
-        num_gpus = torch.cuda.device_count()
-        print(f"사용 가능한 GPU의 개수: {num_gpus}")
-    else:
-        print("CUDA를 사용할 수 없습니다.")
-
-    # # load model
-    model = LTSF_DLinear(
-        window_size=window,
-        forcast_size=forcast,
-        kernel_size=forcast + 1,
-        individual=False,
-        feature_size=1,
-    ).to(device)
-
-    criterion = torch.nn.MSELoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
-
-    train = TrainSeq(
-        model=model,
-        criterion=criterion,
-        optimizer=optimizer,
-        epochs=epochs,
-        window=window,
-        forcast=forcast,
-        batch=batch,
-        scaling=scaling,
-        device=device,
-        save_path=save_path,
-        verbose=verbose,
-        seed=seed,
-    )
-
-    # # get data
     generator = TimeSeriesDataGenerator(date_range=date_range, clipping_range=clipping_range)
-    data = generator.run(pattern=pattern, abnormal=False, plot=False, seed=seed)
-    data = data.set_index(["datetime"])
-
-    # # train
-    model, test_x, test_y, test_date = train.run(data)
-
-    # # infer
-    pred = train.infer(test_x)
-
-    # # plot
-    get_result(pred, test_y, test_date, model_name, minutes)
+    data, abnormal_label = generator.run(pattern=pattern, abnormal=True, plot=True, seed=42)
