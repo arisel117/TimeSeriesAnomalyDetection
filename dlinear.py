@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
+from sklearn.metrics import r2_score, mean_squared_error
 
 from generator import TimeSeriesDataGenerator
 
@@ -317,7 +318,9 @@ class TrainSeq(object):
     def infer(
         self,
         data: np.ndarray,
+        real: np.ndarray | None = None,
     ):
+        required_time = time.time()
         self.model.eval()
         res = []
         for i in range(data.shape[0] // self.batch + 1):    # First dim must be batch dim.
@@ -326,6 +329,12 @@ class TrainSeq(object):
         res = np.vstack(res)
         if self.scaling:
             res = self.scaler.inverse_transform(res)
+        if self.verbose and real is not None:
+            for i in range(self.forcast):
+                print(f"Predict {i+1} min After:",
+                      f"r2_score={r2_score(real[:,i], res[:,i]):.4f}",
+                      f"RMSE={np.sqrt(mean_squared_error(real[:,i], res[:,i])):.4f}")
+            print(f"required_time={time.time() - required_time:.2f}sec", flush=True)
         return res
 
 
