@@ -7,6 +7,9 @@ import torch
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+from generator import TimeSeriesDataGenerator
 
 
 
@@ -145,6 +148,7 @@ class TrainSeq(object):
         window: int = 60,
         forcast: int = 30,
         batch: int = 32,
+        scaling: bool = False,
         device: str = 'cpu',
         save_path: str = "./",
         verbose: int = 0,
@@ -157,6 +161,7 @@ class TrainSeq(object):
         self.window = window
         self.forcast = forcast
         self.batch = batch
+        self.scaling = scaling
         self.device = device
         self.save_path = save_path
         self.verbose = verbose
@@ -169,7 +174,7 @@ class TrainSeq(object):
     ):
         self.model.train()
         loss_list = []
-        for X, real in dataloader:
+        for X, real, _ in dataloader:
             self.optimizer.zero_grad()
             pred = self.model(X.to(self.device))
             loss = self.criterion(pred, real.to(self.device))
@@ -185,7 +190,7 @@ class TrainSeq(object):
     ):
         self.model.eval()
         loss_list = []
-        for X, real in dataloader:
+        for X, real, _ in dataloader:
             pred = self.model(X.to(self.device))
             loss = self.criterion(pred, real.to(self.device))
             loss_list.append(loss.item())
@@ -196,12 +201,16 @@ class TrainSeq(object):
         data: pd.DataFrame,
     ) -> tuple:
         # Data Scaling
-        Scaler = StandardScaler()
-        Scaler.fit(data)    # If you want to use it in an inference system, you need to extract the scaler.
-        scaled_data = pd.DataFrame(data=Scaler.transform(data), index=data.index, columns=data.columns)
+        if self.scaling:
+            self.scaler = StandardScaler()
+            self.scaler.fit(data)
+            data = pd.DataFrame(
+                data=self.scaler.transform(data), index=data.index, columns=data.columns)
 
         # Gen Dataset
-        dataset = TimeSeriesDataset(scaled_data.values.astype(np.float32), self.window, self.forcast)
+        dataset = TimeSeriesDataset(
+            data.values.astype(np.float32),
+            data.index.values.astype(np.int64), self.window, self.forcast)
 
         _train_len = int(len(dataset) * 0.6)
         _valid_len = _train_len + int(len(dataset) * 0.2)
@@ -289,12 +298,41 @@ class TrainSeq(object):
         if self.verbose:
             print(f"Model Train End! total_required_time={time.time() - total_required_time:.2f}sec", flush=True)
 
-        return self.model
+        test_x, test_y, test_date = [], [], []
+        for x, y, d in test_dataloader:
+            test_x.append(x.detach().cpu().squeeze().numpy())
+            test_y.append(y.detach().cpu().squeeze().numpy())
+            test_date.append(np.vectorize(lambda x: np.datetime64(int(x), 'ns'))(d.numpy()))
+        test_x = np.vstack(test_x)
+        test_y = np.vstack(test_y)
+        test_date = np.vstack(test_date)
+
+        if self.scaling:
+            test_x = self.scaler.inverse_transform(test_x)
+            test_y = self.scaler.inverse_transform(test_y)
+
+        return self.model, test_x, test_y, test_date
+
+    @torch.no_grad()
+    def infer(
+        self,
+        data: np.ndarray,
+    ):
+        self.model.eval()
+        res = []
+        for i in range(data.shape[0] // self.batch + 1):    # First dim must be batch dim.
+            X = torch.Tensor(data[i * self.batch: (i + 1) * self.batch]).unsqueeze(-1)
+            res.append(self.model(X.to(self.device)).detach().cpu().squeeze().numpy())
+        res = np.vstack(res)
+        if self.scaling:
+            res = self.scaler.inverse_transform(res)
+        return res
 
 
 class TimeSeriesDataset(torch.utils.data.Dataset):
-    def __init__(self, data, window_size, forecast_size):
+    def __init__(self, data, date, window_size, forecast_size):
         self.data = data
+        self.date = date
         self.window_size = window_size
         self.forecast_size = forecast_size
 
@@ -304,19 +342,87 @@ class TimeSeriesDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         x = self.data[idx:idx + self.window_size]
         y = self.data[idx + self.window_size:idx + self.window_size + self.forecast_size]
-        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+        d = self.date[idx + self.window_size:idx + self.window_size + self.forecast_size]
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32), torch.tensor(d)
 
+
+def get_result(
+    pred: np.ndarray,
+    real: np.ndarray,
+    date: np.ndarray,
+    model_name: str = "LinearRegression",
+    minutes: list = [1, 5, 15, 30],
+):
+    fig, axes = plt.subplots(len(minutes), 2, figsize=(20, 5 * len(minutes)))
+    fig.suptitle(f'{model_name} Model Time Series Prediction \n', fontsize=20)
+
+    axes[0, 0].set_title('Entire Data', fontsize=15)
+    axes[0, 1].set_title('Last 1 Day Data', fontsize=15)
+    for i, minute in enumerate(minutes):
+        res = pd.DataFrame({f"real_{minute}": real[:, i], f"pred_{minute}": pred[:, i]}, index=date[:, i])
+
+        axes[i, 0].set_ylabel(f'Predict {minute} Min After', labelpad=15, fontsize=15)
+
+        axes[i, 0].plot(res, label=["real", "pred"])
+        axes[i, 0].legend(loc='upper left', fontsize=10)
+
+        axes[i, 1].plot(res, label=["real", "pred"])
+        axes[i, 1].legend(loc='upper left', fontsize=10)
+
+    plt.tight_layout()
+    plt.show()
+
+    return None
 
 
 if __name__ == "__main__":
+
+    # Settings
+    # # Model Setting
+    lr = 0.001
+    epochs = 50
     window = 60
     forcast = 30
-
     batch = 32
-    epochs = 50
-    lr = 0.001
+    scaling = False
     device = "cuda:0"
+    save_path = "./model"
+    verbose = 1
+    seed = 42
+    model_name = "DLinear"
+    minutes = [1, 5, 15, 30]
 
+    # # Data Setting
+    date_range = {
+        'start_time': '2024-01-01 00:00:00',
+        'end_time': '2024-01-31 23:59:59',
+        'freq': 'min',
+    }
+
+    clipping_range = {
+        'min_bound': 0.,
+        'max_bound': 500.,
+    }
+
+    pattern = {
+        'Basic': 2,        # -1(None, Default), 1(Linear), 2(Sin), 3(Uniform), 4(Normal), 5(Server), 6(User)
+        'Vibration': 1,    # -1(None, Default), 1(Noraml), 2(Uniform)
+        'Abnoraml': 1,     # -1(None, Default), 1(1% Point Only), 2(2.5% Point, 2.5% Pattern),
+                           # 3(5% Point, 5% Pattern), 4(12.5% Point, 12.5% Pattern), 5(25% Point, 25% Pattern)
+    }
+
+
+    # Execution Part
+    # # set device
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+    if torch.cuda.is_available():
+        num_gpus = torch.cuda.device_count()
+        print(f"사용 가능한 GPU의 개수: {num_gpus}")
+    else:
+        print("CUDA를 사용할 수 없습니다.")
+
+    # # load model
     model = LTSF_DLinear(
         window_size=window,
         forcast_size=forcast,
@@ -336,11 +442,23 @@ if __name__ == "__main__":
         window=window,
         forcast=forcast,
         batch=batch,
+        scaling=scaling,
         device=device,
-        save_path="./model",
-        verbose=1,
-        seed=42,
+        save_path=save_path,
+        verbose=verbose,
+        seed=seed,
     )
 
-    data = np.random.randn(10000)
-    model = train.run(data)
+    # # get data
+    generator = TimeSeriesDataGenerator(date_range=date_range, clipping_range=clipping_range)
+    data = generator.run(pattern=pattern, abnormal=False, plot=False, seed=seed)
+    data = data.set_index(["datetime"])
+
+    # # train
+    model, test_x, test_y, test_date = train.run(data)
+
+    # # infer
+    pred = train.infer(test_x)
+
+    # # plot
+    get_result(pred, test_y, test_date, model_name, minutes)
