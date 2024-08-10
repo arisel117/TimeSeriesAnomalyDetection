@@ -58,7 +58,7 @@
     [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/sample_data.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
   - 같이 생성된 Abnormal label 데이터
     [<img src="https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/images/sample_abnormal.png?raw=true">](https://github.com/arisel117/TimeSeriesAnomalyDetection/blob/main/run_v1.ipynb)
-  - 한 Node 기준의 데이터가 아니라 여러 랜덤 패턴 Node(30+)의 기준으로 데이터를 생성하고, 이를 sum/mean하여 상위 Group Node 패턴도 생성 필요
+  - 한 Node 기준의 데이터가 아니라 여러 랜덤 패턴 Node(30+)의 기준으로 데이터를 생성하고, 이를 sum/mean하여 상위 Group Node 패턴도 생성 필요 (Group화 보다는 여러개 동시 실행 정도만 추가해도 될 듯!)
 
 * * *
 
